@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: "0 7 * * *"
   workflow_dispatch:
+    inputs:
+      verify_only:
+        description: Rebuild and verify without publishing
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -21,13 +26,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          VERIFY_ONLY: ${{ inputs.verify_only }}
         run: |
           set -euo pipefail
           tag="$(gh api repos/pingdotgg/t3code/releases/latest --jq .tag_name)"
           [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Unexpected stable tag: $tag"; exit 1; }
           releases="$(gh release list --repo "$REPO" --limit 1000 --json tagName --jq '.[].tagName')"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          if printf '%s\n' "$releases" | grep -Fxq "$tag"; then
+          if [[ "$VERIFY_ONLY" != "true" ]] && printf '%s\n' "$releases" | grep -Fxq "$tag"; then
             echo "build=false" >> "$GITHUB_OUTPUT"
           else
             echo "build=true" >> "$GITHUB_OUTPUT"
@@ -130,6 +136,7 @@ jobs:
             throw 'Packaged update feed does not point to this GitHub repository.'
           }
       - name: Publish release
+        if: inputs.verify_only != true
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
