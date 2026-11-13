@@ -43,8 +43,72 @@ jobs:
           else
             echo "build=true" >> "$GITHUB_OUTPUT"
           fi
-  build:
+  wsl-runtime:
     needs: check
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    outputs:
+      upstream_commit: ${{ steps.source.outputs.commit }}
+    steps:
+      - name: Checkout patch repository
+        uses: actions/checkout@v4
+        with:
+          path: patches-repo
+          persist-credentials: false
+      - name: Checkout exact upstream release tag
+        id: source
+        env:
+          UPSTREAM_TAG: ${{ needs.check.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir upstream
+          cd upstream
+          git init .
+          git remote add origin https://github.com/pingdotgg/t3code.git
+          git fetch --no-tags --depth=1 origin "refs/tags/$UPSTREAM_TAG"
+          git sparse-checkout set --no-cone '/*' '!/.repos/'
+          git checkout --detach FETCH_HEAD
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Check source and apply the same patch
+        run: node patches-repo/scripts/apply-patch.mjs upstream
+      - name: Set up Vite+ and Node
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb
+        with:
+          node-version-file: upstream/package.json
+          cache: false
+          run-install: false
+      - name: Install dependencies
+        working-directory: upstream
+        run: vp install --frozen-lockfile --filter=@t3tools/desktop... --filter=t3... --filter=@t3tools/scripts...
+      - name: Install Linux build tools
+        run: sudo apt-get update && sudo apt-get install -y patchelf libsecret-1-dev pkg-config
+      - name: Build patched WSL runtime
+        working-directory: upstream
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
+          T3CODE_TELEMETRY_CHANNEL: dev
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          node scripts/update-release-package-versions.ts "$version"
+          vp run build:desktop:bundle
+          cargo build --locked --release --manifest-path native/resource-monitor/Cargo.toml --target x86_64-unknown-linux-gnu
+          mkdir -p "$RUNNER_TEMP/cli-resource-monitor/linux-x64"
+          cp native/resource-monitor/target/x86_64-unknown-linux-gnu/release/t3-resource-monitor "$RUNNER_TEMP/cli-resource-monitor/linux-x64/"
+          node apps/server/scripts/cli.ts build-exe --verbose
+          node scripts/build-cli-archive.ts --platform linux --arch x64 --version "$version" --resource-monitor-dir "$RUNNER_TEMP/cli-resource-monitor" --output-dir release-cli
+          node scripts/smoke-cli-archive.ts --archive "release-cli/t3-${version}-linux-x64.tar.gz" --expect-version "$version"
+      - name: Upload patched WSL runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-wsl-runtime
+          path: upstream/release-cli/t3-*-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+  build:
+    needs: [check, wsl-runtime]
     if: needs.check.outputs.build == 'true'
     runs-on: windows-2025
     timeout-minutes: 120
@@ -71,6 +135,7 @@ jobs:
           git -c protocol.version=2 fetch --no-tags --depth=1 origin "refs/tags/$UPSTREAM_TAG"
           git sparse-checkout set --no-cone '/*' '!/.repos/'
           git -c checkout.workers=0 checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = '${{ needs.wsl-runtime.outputs.upstream_commit }}'
       - name: Check source and apply patch
         run: node patches-repo/scripts/apply-patch.mjs upstream
       - name: Set up Vite+ and Node
@@ -104,6 +169,11 @@ jobs:
         run: |
           node scripts/update-release-package-versions.ts $env:TAG.Substring(1)
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Download patched WSL runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: patched-wsl-runtime
+          path: upstream/wsl-runtime
       - name: Build Windows installer
         working-directory: upstream
         env:
@@ -112,7 +182,9 @@ jobs:
           TAG: ${{ needs.check.outputs.tag }}
         run: |
           $version = $env:TAG.Substring(1)
-          vp run dist:desktop:artifact --platform win --target nsis --arch x64 --build-version $version --keep-stage
+          $archive = @(Get-ChildItem wsl-runtime -File -Filter "t3-$version-linux-x64.tar.gz")
+          if ($archive.Count -ne 1) { throw 'Missing patched WSL runtime.' }
+          vp run dist:desktop:artifact --platform win --target nsis --arch x64 --build-version $version --keep-stage --wsl-runtime $archive[0].FullName
           if ($LASTEXITCODE -ne 0) {
             $buildExit = $LASTEXITCODE
             Get-ChildItem $env:TEMP -Directory -Filter 't3code-desktop-win-stage-*' | ForEach-Object {
@@ -133,6 +205,8 @@ jobs:
             Get-ChildItem $_.FullName -File -Recurse -Filter app-update.yml | Where-Object { $_.FullName -match '[\\/]win-unpacked[\\/]resources[\\/]app-update\.yml$' }
           })
           if ($configs.Count -ne 1) { throw "Expected exactly one packaged update config, found $($configs.Count)." }
+          $resources = $configs[0].DirectoryName
+          if (-not (Test-Path (Join-Path $resources 'wsl-runtime.tar.gz')) -or -not (Test-Path (Join-Path $resources 'wsl-runtime.tar.gz.sha256'))) { throw 'The packaged WSL runtime or checksum is missing.' }
           $feed = Get-Content $configs[0].FullName -Raw
           $parts = $env:GITHUB_REPOSITORY.Split('/')
           if ($feed -notmatch '(?m)^provider:\s*github\s*$' -or
