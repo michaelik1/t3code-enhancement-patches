@@ -47,16 +47,18 @@ jobs:
           path: patches-repo
           persist-credentials: false
       - name: Checkout exact upstream release tag
-        uses: actions/checkout@v4
-        with:
-          repository: pingdotgg/t3code
-          ref: ${{ needs.check.outputs.tag }}
-          path: upstream
-          persist-credentials: false
-          sparse-checkout: |
-            /*
-            !/.repos/
-          sparse-checkout-cone-mode: false
+        shell: bash
+        env:
+          UPSTREAM_TAG: ${{ needs.check.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir upstream
+          cd upstream
+          git init .
+          git remote add origin https://github.com/pingdotgg/t3code.git
+          git -c protocol.version=2 fetch --no-tags --depth=1 origin "refs/tags/$UPSTREAM_TAG"
+          git sparse-checkout set --no-cone '/*' '!/.repos/'
+          git -c checkout.workers=0 checkout --detach FETCH_HEAD
       - name: Check source and apply patch
         run: node patches-repo/scripts/apply-patch.mjs upstream
       - name: Set up T3 build dependencies
