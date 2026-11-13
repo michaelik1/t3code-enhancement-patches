@@ -55,6 +55,7 @@ jobs:
           mkdir upstream
           cd upstream
           git init .
+          git config core.autocrlf false
           git remote add origin https://github.com/pingdotgg/t3code.git
           git -c protocol.version=2 fetch --no-tags --depth=1 origin "refs/tags/$UPSTREAM_TAG"
           git sparse-checkout set --no-cone '/*' '!/.repos/'
