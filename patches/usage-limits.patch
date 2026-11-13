@@ -136,3 +136,64 @@ index 00000000..16d6c7bf
 +  expect(JSON.stringify(result)).not.toContain("private");
 +  expect(OrchestratorToolkit.tools.t3_usage_limits).toBeDefined();
 +});
+diff --git a/scripts/build-desktop-artifact.test.ts b/scripts/build-desktop-artifact.test.ts
+index aef49abe..7221e253 100644
+--- a/scripts/build-desktop-artifact.test.ts
++++ b/scripts/build-desktop-artifact.test.ts
+@@ -1342,6 +1342,26 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
+     ),
+   );
+ 
++  it.effect("bounds the Windows compile cache independently of the application payload", () =>
++    Effect.scoped(
++      Effect.gen(function* () {
++        const fs = yield* FileSystem.FileSystem;
++        const path = yield* Path.Path;
++        const fixture = yield* makeWindowsPayloadFixture({ copyUnpackedNatives: true });
++        const cache = path.join(fixture.packagedAppDir, "resources", "server-compile-cache");
++        yield* fs.makeDirectory(cache, { recursive: true });
++        for (let i = 0; i < 65; i++) yield* fs.writeFileString(path.join(cache, String(i)), "cache");
++        const error = yield* validateWindowsPackagedPayload({
++          stageDistDir: fixture.stageDistDir, appExecutableName: fixture.appExecutableName,
++          targetArch: "x64", appVersion: WINDOWS_PAYLOAD_FIXTURE_VERSION,
++        }).pipe(Effect.flip);
++        assert.equal(error.reason, "file-limit-exceeded");
++        assert.equal(error.fileLimit, 64);
++        assert.equal(error.fileCount, 65);
++      }),
++    ),
++  );
++
+   it.effect("rejects a sidecar whose extracted server bundle cannot resolve", () =>
+     Effect.scoped(
+       Effect.gen(function* () {
+diff --git a/scripts/build-desktop-artifact.ts b/scripts/build-desktop-artifact.ts
+index 2fff4919..8063ef22 100644
+--- a/scripts/build-desktop-artifact.ts
++++ b/scripts/build-desktop-artifact.ts
+@@ -3195,6 +3195,9 @@ const countPayloadFiles = Effect.fn("desktopArtifact.countPayloadFiles")(functio
+     if (directory === undefined) break;
+     const entries = yield* fs.readDirectory(directory);
+     for (const entry of entries) {
++      // The native Windows builder prepares a variable number of bytecode cache files.
++      // The file limit checks the actual application payload, as in the upstream Linux cross-build.
++      if (directory === path.join(root, "resources") && entry === "server-compile-cache") continue;
+       const entryPath = path.join(directory, entry);
+       const stat = yield* fs.stat(entryPath);
+       if (stat.type === "Directory") {
+@@ -3516,6 +3519,15 @@ export const validateWindowsPackagedPayload = Effect.fn(
+   }
+ 
+   const fileCount = yield* countPayloadFiles(packagedAppDir);
++  const compileCachePath = path.join(resourcesDir, "server-compile-cache");
++  if (yield* fs.exists(compileCachePath).pipe(Effect.orElseSucceed(() => false))) {
++    const cacheFileCount = yield* countPayloadFiles(compileCachePath);
++    if (cacheFileCount > 64) {
++      return yield* new WindowsPackagedPayloadValidationError({
++        reason: "file-limit-exceeded", packagedAppDir, fileCount: cacheFileCount, fileLimit: 64,
++      });
++    }
++  }
+   if (fileCount > fileLimit) {
+     return yield* new WindowsPackagedPayloadValidationError({
+       reason: "file-limit-exceeded",

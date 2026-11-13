@@ -9,6 +9,7 @@
     "packages/contracts/src/providerUsageLimits.ts": "05635bce6261698b8d49cfc8d05ceaaa6a1629d6caa0785476117ee0d0fdda68",
     "apps/server/src/mcp/McpHttpServer.ts": "bf29b7cbc2cfadfcf8e419873959c39bd50b4c59737dfab63dcd85006072feaf",
     "apps/server/src/mcp/McpToolAccess.ts": "17a5a70ffa74153911e3092c4358a6e6d3dd3703d78512914434850df1250df1",
-    "scripts/build-desktop-artifact.ts": "a26b7b2d2a7ab052a2cf538ce0f33baf2b1e1615e630d8ed4a72ea10330d6c27"
+    "scripts/build-desktop-artifact.ts": "a26b7b2d2a7ab052a2cf538ce0f33baf2b1e1615e630d8ed4a72ea10330d6c27",
+    "scripts/build-desktop-artifact.test.ts": "3d7b2284e64c6171066145844f900c2483adfb4e0878b594c26a082e69339f46"
   }
 }

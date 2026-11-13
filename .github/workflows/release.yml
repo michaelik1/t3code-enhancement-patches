@@ -80,6 +80,10 @@ jobs:
           vp test run src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Pop-Location
+          Push-Location scripts
+          vp test run --config ../vite.config.ts build-desktop-artifact.test.ts -t "bounds the Windows compile cache"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
           vp run --filter t3 typecheck
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Align package versions with upstream release
