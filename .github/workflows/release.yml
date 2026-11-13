@@ -62,10 +62,17 @@ jobs:
           git -c checkout.workers=0 checkout --detach FETCH_HEAD
       - name: Check source and apply patch
         run: node patches-repo/scripts/apply-patch.mjs upstream
-      - name: Set up T3 build dependencies
-        uses: ./upstream/.github/actions/setup-ci-deps
+      - name: Set up Vite+ and Node
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb
         with:
-          install-args: --filter=@t3tools/desktop... --filter=t3... --filter=@t3tools/scripts...
+          node-version-file: upstream/package.json
+          cache: false
+          run-install: false
+      - name: Install T3 dependencies
+        working-directory: upstream
+        run: |
+          vp install --frozen-lockfile --filter=@t3tools/desktop... --filter=t3... --filter=@t3tools/scripts...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify patch and types
         working-directory: upstream
         run: |
