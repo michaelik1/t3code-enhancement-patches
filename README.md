@@ -10,6 +10,6 @@ If an upstream file changes, the workflow fails before applying the patch. Revie
 
 For native Windows builds, the patch bounds prepared compile-cache files separately (64 files) from T3's 80-file application payload limit; the upstream Linux cross-build does not generate that Windows cache.
 
-The Windows build does not bundle a Linux WSL CLI runtime. T3 Connect may require upstream build configuration not included here. Windows x64 is the only build target configured. Scheduled jobs can be delayed or disabled after repository inactivity.
+The Windows build bundles a Linux x64 WSL runtime built from the same patched upstream commit. T3 Connect may require upstream build configuration not included here. Windows x64 is the only build target configured. Scheduled jobs can be delayed or disabled after repository inactivity.
 
 To check a local release checkout, run `node scripts/apply-patch.mjs <path-to-clean-t3-checkout>`; this changes that checkout. To test, run `vp test run apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts` within it.

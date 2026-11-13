@@ -247,6 +247,17 @@ jobs:
             Get-Content (Join-Path $env:T3CODE_HOME 'userdata\logs\server-child.log') -ErrorAction SilentlyContinue | Select-Object -Last 60
             throw 'The packaged T3 server did not become ready.'
           }
+      - name: Save verified Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-windows-release
+          path: |
+            upstream/release/*.exe
+            upstream/release/latest.yml
+            upstream/release/*.blockmap
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
       - name: Publish release
         if: inputs.verify_only != true
         env:
