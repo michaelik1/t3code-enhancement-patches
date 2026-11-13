@@ -90,8 +90,17 @@ jobs:
           TAG: ${{ needs.check.outputs.tag }}
         run: |
           $version = $env:TAG.Substring(1)
-          vp run dist:desktop:artifact --platform win --target nsis --arch x64 --build-version $version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          vp run dist:desktop:artifact --platform win --target nsis --arch x64 --build-version $version --keep-stage
+          if ($LASTEXITCODE -ne 0) {
+            $buildExit = $LASTEXITCODE
+            Get-ChildItem $env:TEMP -Directory -Filter 't3code-desktop-win-stage-*' | ForEach-Object {
+              Get-ChildItem $_.FullName -Directory -Recurse -Filter '*-unpacked' | ForEach-Object {
+                Write-Output "Packaged files in $($_.FullName):"
+                Get-ChildItem $_.FullName -File -Recurse | ForEach-Object { $_.FullName.Substring($env:TEMP.Length) }
+              }
+            }
+            exit $buildExit
+          }
       - name: Verify release assets
         working-directory: upstream
         run: |
