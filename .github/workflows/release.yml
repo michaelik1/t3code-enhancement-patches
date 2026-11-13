@@ -82,6 +82,13 @@ jobs:
           Pop-Location
           vp run --filter t3 typecheck
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Align package versions with upstream release
+        working-directory: upstream
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
+        run: |
+          node scripts/update-release-package-versions.ts $env:TAG.Substring(1)
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build Windows installer
         working-directory: upstream
         env:
