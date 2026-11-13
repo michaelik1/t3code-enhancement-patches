@@ -51,7 +51,7 @@ index 3db297bc..b5e1f28d 100644
      Effect.gen(function* () {
        const scope = yield* McpInvocationContext.McpInvocationContext;
 diff --git a/apps/server/src/mcp/toolkits/orchestrator/tools.ts b/apps/server/src/mcp/toolkits/orchestrator/tools.ts
-index 2ba8a5f2..aba105c2 100644
+index 2ba8a5f2..76605ecf 100644
 --- a/apps/server/src/mcp/toolkits/orchestrator/tools.ts
 +++ b/apps/server/src/mcp/toolkits/orchestrator/tools.ts
 @@ -1,4 +1,5 @@
@@ -68,13 +68,12 @@ index 2ba8a5f2..aba105c2 100644
  import * as PeerForwarding from "../../../peer/PeerForwarding.ts";
  import * as PeerLinkRequests from "../../../peer/PeerLinkRequests.ts";
  import * as PeerLinks from "../../../peer/PeerLinks.ts";
-@@ -69,6 +71,31 @@ const threadMetadataDependencies = [
+@@ -69,6 +71,30 @@ const threadMetadataDependencies = [
    ThreadMetadataMcpService.ThreadMetadataMcpService,
  ];
  
 +const UsageLimitsTool = Tool.make("t3_usage_limits", {
 +  description: "Read the latest T3 subscription quota snapshots for all provider instances and usage hubs on this environment. Values may be stale; usedPercent is consumed, not remaining. Does not refresh quotas.",
-+  parameters: Schema.Struct({}),
 +  success: Schema.Struct({
 +    accounts: Schema.Array(Schema.Struct({
 +      id: Schema.String,
@@ -100,7 +99,7 @@ index 2ba8a5f2..aba105c2 100644
  const OrchestratorCapabilitiesTool = Tool.make("orchestrator_capabilities", {
    description:
      "List providers, models, options, and runtime modes for `delegate_task`. Short list. `search` finds others. Any catalog model works.",
-@@ -351,6 +378,7 @@ const EnvironmentUnlinkTool = Tool.make("t3_environment_unlink", {
+@@ -351,6 +377,7 @@ const EnvironmentUnlinkTool = Tool.make("t3_environment_unlink", {
  
  export const OrchestratorToolkit = Toolkit.make(
    OrchestratorCapabilitiesTool,
@@ -110,12 +109,13 @@ index 2ba8a5f2..aba105c2 100644
    TaskCancelTool,
 diff --git a/apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts b/apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts
 new file mode 100644
-index 00000000..16d6c7bf
+index 00000000..0d63873e
 --- /dev/null
 +++ b/apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,27 @@
 +import { expect, it } from "@effect/vitest";
 +import type { ServerProvider, UsageLimitSourceSnapshot } from "@t3tools/contracts";
++import { advertisedJsonSchema } from "../../advertisedJsonSchema.ts";
 +import { usageLimitsSnapshot } from "./handlers.ts";
 +import { OrchestratorToolkit } from "./tools.ts";
 +
@@ -135,6 +135,10 @@ index 00000000..16d6c7bf
 +  expect(result.sourceErrors).toEqual([{ source: "hub", message: "offline" }]);
 +  expect(JSON.stringify(result)).not.toContain("private");
 +  expect(OrchestratorToolkit.tools.t3_usage_limits).toBeDefined();
++});
++
++it("advertises an object input schema accepted by the MCP server", () => {
++  expect(advertisedJsonSchema(OrchestratorToolkit.tools.t3_usage_limits).type).toBe("object");
 +});
 diff --git a/scripts/build-desktop-artifact.test.ts b/scripts/build-desktop-artifact.test.ts
 index aef49abe..7221e253 100644

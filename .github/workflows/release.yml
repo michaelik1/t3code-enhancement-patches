@@ -8,6 +8,10 @@ on:
         description: Rebuild and verify without publishing
         type: boolean
         default: false
+      repair_draft:
+        description: Replace assets of the existing draft release
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -27,13 +31,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           VERIFY_ONLY: ${{ inputs.verify_only }}
+          REPAIR_DRAFT: ${{ inputs.repair_draft }}
         run: |
           set -euo pipefail
           tag="$(gh api repos/pingdotgg/t3code/releases/latest --jq .tag_name)"
           [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Unexpected stable tag: $tag"; exit 1; }
           releases="$(gh release list --repo "$REPO" --limit 1000 --json tagName --jq '.[].tagName')"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          if [[ "$VERIFY_ONLY" != "true" ]] && printf '%s\n' "$releases" | grep -Fxq "$tag"; then
+          if [[ "$VERIFY_ONLY" != "true" && "$REPAIR_DRAFT" != "true" ]] && printf '%s\n' "$releases" | grep -Fxq "$tag"; then
             echo "build=false" >> "$GITHUB_OUTPUT"
           else
             echo "build=true" >> "$GITHUB_OUTPUT"
@@ -135,6 +140,39 @@ jobs:
               $feed -notmatch "(?m)^repo:\s*$([regex]::Escape($parts[1]))\s*$") {
             throw 'Packaged update feed does not point to this GitHub repository.'
           }
+      - name: Smoke-test packaged server startup
+        shell: pwsh
+        run: |
+          $stages = @(Get-ChildItem $env:TEMP -Directory -Filter 't3code-desktop-win-stage-*')
+          if ($stages.Count -ne 1) { throw 'Expected one build stage.' }
+          $apps = @(Get-ChildItem $stages[0].FullName -File -Recurse -Filter 'T3 Code (Beta).exe' | Where-Object { $_.Directory.Name -eq 'win-unpacked' })
+          if ($apps.Count -ne 1) { throw 'Expected one unpacked application.' }
+          $root = Join-Path $env:RUNNER_TEMP 't3-smoke-profile'
+          $env:T3CODE_HOME = Join-Path $root 'data'
+          $env:USERPROFILE = Join-Path $root 'home'
+          $env:HOME = $env:USERPROFILE
+          $env:APPDATA = Join-Path $root 'home\AppData\Roaming'
+          $env:LOCALAPPDATA = Join-Path $root 'home\AppData\Local'
+          $env:CODEX_HOME = Join-Path $root 'home\.codex'
+          $env:T3CODE_DISABLE_AUTO_UPDATE = 'true'
+          $env:T3CODE_DESKTOP_APP_USER_MODEL_ID = 'com.michaelik.t3code.ci-smoke'
+          Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path (Join-Path $env:T3CODE_HOME 'userdata'), $env:APPDATA, $env:LOCALAPPDATA | Out-Null
+          New-Item -ItemType File -Force -Path (Join-Path $env:T3CODE_HOME 'userdata\cli-command-first-launch') | Out-Null
+          Start-Process -FilePath $apps[0].FullName -WorkingDirectory $apps[0].DirectoryName -WindowStyle Hidden | Out-Null
+          $runtimeFile = Join-Path $env:T3CODE_HOME 'userdata\server-runtime.json'
+          $ready = $false
+          for ($i = 0; $i -lt 90; $i++) {
+            if (Test-Path $runtimeFile) {
+              $runtime = Get-Content $runtimeFile -Raw | ConvertFrom-Json
+              try { Invoke-WebRequest -Uri $runtime.origin -UseBasicParsing -TimeoutSec 2 | Out-Null; $ready = $true; break } catch { }
+            }
+            Start-Sleep -Seconds 1
+          }
+          if (-not $ready) {
+            Get-Content (Join-Path $env:T3CODE_HOME 'userdata\logs\server-child.log') -ErrorAction SilentlyContinue | Select-Object -Last 60
+            throw 'The packaged T3 server did not become ready.'
+          }
       - name: Publish release
         if: inputs.verify_only != true
         env:
@@ -144,5 +182,13 @@ jobs:
         working-directory: upstream
         run: |
           $assets = @(Get-ChildItem release -File | Where-Object { $_.Extension -in '.exe', '.yml', '.blockmap' } | ForEach-Object { $_.FullName })
-          gh release create $env:TAG @assets --repo $env:REPO --title "Patched T3 Code $env:TAG" --notes "Based on upstream release $env:TAG. Includes the built-in t3_usage_limits MCP tool. Windows x64 build; unsigned." --latest
+          if ('${{ inputs.repair_draft }}' -eq 'true') {
+            $draft = gh release view $env:TAG --repo $env:REPO --json isDraft --jq .isDraft
+            if ($LASTEXITCODE -ne 0 -or $draft -ne 'true') { throw 'Repair requires an existing draft release.' }
+            gh release upload $env:TAG @assets --repo $env:REPO --clobber
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            gh release edit $env:TAG --repo $env:REPO --draft=false --latest
+          } else {
+            gh release create $env:TAG @assets --repo $env:REPO --title "Patched T3 Code $env:TAG" --notes "Based on upstream release $env:TAG. Includes the built-in t3_usage_limits MCP tool. Windows x64 build; unsigned." --latest
+          }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
