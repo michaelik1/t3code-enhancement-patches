@@ -118,6 +118,17 @@ jobs:
           if (-not (Test-Path release/latest.yml)) { throw 'Missing latest.yml; refusing to publish.' }
           $installers = @(Get-ChildItem release -Filter '*.exe')
           if ($installers.Count -ne 1) { throw "Expected exactly one installer, found $($installers.Count)." }
+          $configs = @(Get-ChildItem $env:TEMP -Directory -Filter 't3code-desktop-win-stage-*' | ForEach-Object {
+            Get-ChildItem $_.FullName -File -Recurse -Filter app-update.yml | Where-Object { $_.FullName -match '[\\/]win-unpacked[\\/]resources[\\/]app-update\.yml$' }
+          })
+          if ($configs.Count -ne 1) { throw "Expected exactly one packaged update config, found $($configs.Count)." }
+          $feed = Get-Content $configs[0].FullName -Raw
+          $parts = $env:GITHUB_REPOSITORY.Split('/')
+          if ($feed -notmatch '(?m)^provider:\s*github\s*$' -or
+              $feed -notmatch "(?m)^owner:\s*$([regex]::Escape($parts[0]))\s*$" -or
+              $feed -notmatch "(?m)^repo:\s*$([regex]::Escape($parts[1]))\s*$") {
+            throw 'Packaged update feed does not point to this GitHub repository.'
+          }
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
