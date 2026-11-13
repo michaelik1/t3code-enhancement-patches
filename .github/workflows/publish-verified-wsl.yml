@@ -1,0 +1,37 @@
+name: Publish verified WSL repair
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify the exact completed build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          result="$(gh run view 43512710072 --repo "$REPO" --json conclusion,headSha,workflowName)"
+          echo "$result" | jq -e '.conclusion == "success" and .headSha == "a929c978f843fed42f2940d786afbabb631e5f3b" and .workflowName == "Build patched T3 Code"' > /dev/null
+      - name: Download verified artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 43512710072
+          name: verified-windows-release
+          path: release-assets
+      - name: Replace release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          test -f release-assets/latest.yml
+          test -f release-assets/T3-Code-0.1.9-x64.exe
+          test -f release-assets/T3-Code-0.1.9-x64.exe.blockmap
+          gh release edit v0.1.9 --repo "$REPO" --draft
+          gh release upload v0.1.9 release-assets/* --repo "$REPO" --clobber
+          gh release edit v0.1.9 --repo "$REPO" --draft=false --latest --notes "Includes patched WSL runtime and t3_usage_limits. Windows x64, unsigned. Reinstall if you already have v0.1.9 without WSL runtime."
