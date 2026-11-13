@@ -1,0 +1,14 @@
+{
+  "base_release": "v0.1.9",
+  "base_commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76",
+  "files": {
+    "apps/server/src/mcp/toolkits/orchestrator/tools.ts": "c0323787632ba825753d5278a2b1e9a806b66cc8317d5c2d23fb74b492bc85bb",
+    "apps/server/src/mcp/toolkits/orchestrator/handlers.ts": "ce9941d24795e63718c13e7c33dce637ac7af8914490173ab78dd4e04b8ca70b",
+    "apps/server/src/provider/ProviderRegistry.ts": "1805f99a7ced9b05bf9a71157cce1347de1aa78965dbfeed8e74bcdae57e8157",
+    "apps/server/src/usage/UsageLimitSources.ts": "932b15135889f24b1ef1b353e69220c96857804fc832aa26b092b80369e9a1c1",
+    "packages/contracts/src/providerUsageLimits.ts": "05635bce6261698b8d49cfc8d05ceaaa6a1629d6caa0785476117ee0d0fdda68",
+    "apps/server/src/mcp/McpHttpServer.ts": "bf29b7cbc2cfadfcf8e419873959c39bd50b4c59737dfab63dcd85006072feaf",
+    "apps/server/src/mcp/McpToolAccess.ts": "17a5a70ffa74153911e3092c4358a6e6d3dd3703d78512914434850df1250df1",
+    "scripts/build-desktop-artifact.ts": "a26b7b2d2a7ab052a2cf538ce0f33baf2b1e1615e630d8ed4a72ea10330d6c27"
+  }
+}

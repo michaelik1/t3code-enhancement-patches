@@ -1,0 +1,138 @@
+diff --git a/apps/server/src/mcp/toolkits/orchestrator/handlers.ts b/apps/server/src/mcp/toolkits/orchestrator/handlers.ts
+index 3db297bc..b5e1f28d 100644
+--- a/apps/server/src/mcp/toolkits/orchestrator/handlers.ts
++++ b/apps/server/src/mcp/toolkits/orchestrator/handlers.ts
+@@ -1,7 +1,10 @@
+-import { OrchestratorMcpFailure } from "@t3tools/contracts";
++import { OrchestratorMcpFailure, type ServerProvider, type UsageLimitSourceSnapshot } from "@t3tools/contracts";
+ import { OrchestratorToolkit } from "./tools.ts";
+ import * as Effect from "effect/Effect";
++import * as Option from "effect/Option";
+ 
++import * as ProviderRegistry from "../../../provider/ProviderRegistry.ts";
++import * as UsageLimitSources from "../../../usage/UsageLimitSources.ts";
+ import * as PeerForwarding from "../../../peer/PeerForwarding.ts";
+ import * as PeerLinkRequests from "../../../peer/PeerLinkRequests.ts";
+ import * as PeerLinks from "../../../peer/PeerLinks.ts";
+@@ -11,7 +14,35 @@ import * as McpToolAccess from "../../McpToolAccess.ts";
+ import * as OrchestratorMcpService from "../../OrchestratorMcpService.ts";
+ import * as ThreadMetadataMcpService from "../../ThreadMetadataMcpService.ts";
+ 
++export function usageLimitsSnapshot(providers: ReadonlyArray<ServerProvider>, sources: ReadonlyArray<UsageLimitSourceSnapshot>) {
++  return {
++    accounts: [
++      ...providers.map((p) => ({
++        id: p.instanceId, provider: p.driver, label: p.displayName ?? p.instanceId,
++        source: "local", enabled: p.enabled, checkedAt: p.usageLimits?.checkedAt ?? null,
++        unavailable: p.usageLimits?.unavailable?.reason ?? (p.usageLimits ? null : "no_snapshot"),
++        windows: p.usageLimits?.windows ?? [],
++      })),
++      ...sources.flatMap((s) => s.accounts.map((a) => ({
++        id: a.id, provider: a.driver, label: a.email ?? a.id,
++        source: s.label, enabled: true, checkedAt: a.usageLimits.checkedAt,
++        unavailable: a.usageLimits.unavailable?.reason ?? null, windows: a.usageLimits.windows,
++      }))),
++    ],
++    sourceErrors: sources.filter((s) => s.error).map((s) => ({ source: s.label, message: s.error! })),
++  };
++}
++
+ const handlers = {
++  t3_usage_limits: McpToolAccess.readsAsCaller(() =>
++    Effect.gen(function* () {
++      const providers = yield* ProviderRegistry.ProviderRegistry.pipe(Effect.flatMap((r) => r.getProviders));
++      const service = yield* Effect.serviceOption(UsageLimitSources.UsageLimitSources);
++      const sources = yield* Option.match(service, { onNone: () => Effect.succeed([]), onSome: (s) => s.current });
++      const snapshot = usageLimitsSnapshot(providers, sources);
++      return Option.isNone(service) ? { ...snapshot, sourceErrors: [...snapshot.sourceErrors, { source: "hubs", message: "Usage hub service unavailable" }] } : snapshot;
++    }),
++  ),
+   orchestrator_capabilities: McpToolAccess.reads((input) =>
+     Effect.gen(function* () {
+       const scope = yield* McpInvocationContext.McpInvocationContext;
+diff --git a/apps/server/src/mcp/toolkits/orchestrator/tools.ts b/apps/server/src/mcp/toolkits/orchestrator/tools.ts
+index 2ba8a5f2..aba105c2 100644
+--- a/apps/server/src/mcp/toolkits/orchestrator/tools.ts
++++ b/apps/server/src/mcp/toolkits/orchestrator/tools.ts
+@@ -1,4 +1,5 @@
+ import {
++  ServerProviderUsageWindow,
+   OrchestratorMcpCapabilitiesInput,
+   OrchestratorMcpCapabilitiesResult,
+   OrchestrationV2StopWorkflowInput,
+@@ -43,6 +44,7 @@ import * as Schema from "effect/Schema";
+ import * as Struct from "effect/Struct";
+ 
+ import * as ThreadManagementService from "../../../orchestration-v2/ThreadManagementService.ts";
++import * as ProviderRegistry from "../../../provider/ProviderRegistry.ts";
+ import * as PeerForwarding from "../../../peer/PeerForwarding.ts";
+ import * as PeerLinkRequests from "../../../peer/PeerLinkRequests.ts";
+ import * as PeerLinks from "../../../peer/PeerLinks.ts";
+@@ -69,6 +71,31 @@ const threadMetadataDependencies = [
+   ThreadMetadataMcpService.ThreadMetadataMcpService,
+ ];
+ 
++const UsageLimitsTool = Tool.make("t3_usage_limits", {
++  description: "Read the latest T3 subscription quota snapshots for all provider instances and usage hubs on this environment. Values may be stale; usedPercent is consumed, not remaining. Does not refresh quotas.",
++  parameters: Schema.Struct({}),
++  success: Schema.Struct({
++    accounts: Schema.Array(Schema.Struct({
++      id: Schema.String,
++      provider: Schema.String,
++      label: Schema.String,
++      source: Schema.String,
++      enabled: Schema.Boolean,
++      checkedAt: Schema.NullOr(Schema.String),
++      unavailable: Schema.NullOr(Schema.String),
++      windows: Schema.Array(ServerProviderUsageWindow),
++    })),
++    sourceErrors: Schema.Array(Schema.Struct({ source: Schema.String, message: Schema.String })),
++  }),
++  failure: OrchestratorMcpFailure,
++  failureMode: "return",
++  dependencies: [McpInvocationContext.McpInvocationContext, ProviderRegistry.ProviderRegistry],
++})
++  .annotate(Tool.Title, "Read subscription usage limits")
++  .annotate(Tool.Readonly, true)
++  .annotate(Tool.Destructive, false)
++  .annotate(Tool.Idempotent, true);
++
+ const OrchestratorCapabilitiesTool = Tool.make("orchestrator_capabilities", {
+   description:
+     "List providers, models, options, and runtime modes for `delegate_task`. Short list. `search` finds others. Any catalog model works.",
+@@ -351,6 +378,7 @@ const EnvironmentUnlinkTool = Tool.make("t3_environment_unlink", {
+ 
+ export const OrchestratorToolkit = Toolkit.make(
+   OrchestratorCapabilitiesTool,
++  UsageLimitsTool,
+   DelegateTaskTool,
+   TaskStatusTool,
+   TaskCancelTool,
+diff --git a/apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts b/apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts
+new file mode 100644
+index 00000000..16d6c7bf
+--- /dev/null
++++ b/apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts
+@@ -0,0 +1,22 @@
++import { expect, it } from "@effect/vitest";
++import type { ServerProvider, UsageLimitSourceSnapshot } from "@t3tools/contracts";
++import { usageLimitsSnapshot } from "./handlers.ts";
++import { OrchestratorToolkit } from "./tools.ts";
++
++it("returns every window per account, preserving missing snapshots and source errors", () => {
++  const windows = [
++    { id: "5h", kind: "session", label: "5h", usedPercent: 25 },
++    { id: "weekly-model", kind: "weekly", label: "Model weekly", usedPercent: 80 },
++  ];
++  const providers = [
++    { instanceId: "codex", driver: "codex", enabled: true, usageLimits: { checkedAt: "2026-01-01T00:00:00Z", windows, credentialFingerprint: "private" } },
++    { instanceId: "agy", driver: "antigravity", enabled: false },
++  ] as unknown as ReadonlyArray<ServerProvider>;
++  const sources = [{ label: "hub", error: "offline", accounts: [] }] as unknown as ReadonlyArray<UsageLimitSourceSnapshot>;
++  const result = usageLimitsSnapshot(providers, sources);
++  expect(result.accounts[0]?.windows).toEqual(windows);
++  expect(result.accounts[1]?.unavailable).toBe("no_snapshot");
++  expect(result.sourceErrors).toEqual([{ source: "hub", message: "offline" }]);
++  expect(JSON.stringify(result)).not.toContain("private");
++  expect(OrchestratorToolkit.tools.t3_usage_limits).toBeDefined();
++});
