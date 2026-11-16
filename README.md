@@ -6,10 +6,12 @@ The daily GitHub Actions workflow checks the latest published stable release at 
 
 ## Maintenance
 
-If an upstream file changes, the workflow fails before applying the patch. Review the changes, update and test the patch, then update the hashes and base commit in `patches/base.json`. Never update hashes without reviewing the relevant upstream changes. Hash guards cannot detect every upstream behavior change, so retain the tests. This workflow builds once per upstream version; a patched re-release of the same version requires a separate increasing version strategy.
+If an upstream file changes, the workflow fails before applying the patch. Review the changes, update and test the patch, then update the hashes and base commit in `patches/base.json`. Never update hashes without reviewing the relevant upstream changes. Hash guards cannot detect every upstream behavior change, so retain the tests.
+
+Releases use `<upstream>-patch.<major>.<minor>` (for example, `v0.1.9-patch.1.0`), combining the 3-part upstream T3 Code version with the 2-part `patch_version` configured in `patches/base.json`. The patch teaches T3 Code's version comparator and `ElectronUpdater` to order `-patch.<major>.<minor>` above its base upstream release (`0.1.9 < 0.1.9-patch.1.0 < 0.1.9-patch.1.1 < 0.1.10-patch.1.0`) and forces `electron-builder` to emit `latest.yml`. Bumping `patch_version` in `patches/base.json` and running the workflow publishes a new patched release for the current upstream version that the desktop updater detects automatically.
 
 For native Windows builds, the patch bounds prepared compile-cache files separately (64 files) from T3's 80-file application payload limit; the upstream Linux cross-build does not generate that Windows cache.
 
 The Windows build bundles a Linux x64 WSL runtime built from the same patched upstream commit. T3 Connect may require upstream build configuration not included here. Windows x64 is the only build target configured. Scheduled jobs can be delayed or disabled after repository inactivity.
 
-To check a local release checkout, run `node scripts/apply-patch.mjs <path-to-clean-t3-checkout>`; this changes that checkout. To test, run `vp test run apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts` within it.
+To check a local release checkout, run `node scripts/apply-patch.mjs <path-to-clean-t3-checkout>`; this changes that checkout. To test, run `vp test run packages/shared/src/semver.test.ts` and `vp test run apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts` within it.

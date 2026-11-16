@@ -21,10 +21,15 @@ jobs:
   check:
     runs-on: ubuntu-latest
     outputs:
+      upstream_tag: ${{ steps.check.outputs.upstream_tag }}
       tag: ${{ steps.check.outputs.tag }}
       build: ${{ steps.check.outputs.build }}
     steps:
-      - name: Check latest upstream stable release
+      - name: Checkout patch metadata
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check latest upstream stable release and patch version
         id: check
         shell: bash
         env:
@@ -34,9 +39,13 @@ jobs:
           REPAIR_DRAFT: ${{ inputs.repair_draft }}
         run: |
           set -euo pipefail
-          tag="$(gh api repos/pingdotgg/t3code/releases/latest --jq .tag_name)"
-          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Unexpected stable tag: $tag"; exit 1; }
+          upstream_tag="$(gh api repos/pingdotgg/t3code/releases/latest --jq .tag_name)"
+          [[ "$upstream_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Unexpected stable tag: $upstream_tag"; exit 1; }
+          patch_version="$(jq -r '.patch_version // empty' patches/base.json)"
+          [[ "$patch_version" =~ ^[0-9]+\.[0-9]+$ ]] || { echo "Invalid patch_version in patches/base.json: $patch_version"; exit 1; }
+          tag="${upstream_tag}-patch.${patch_version}"
           releases="$(gh release list --repo "$REPO" --limit 1000 --json tagName --jq '.[].tagName')"
+          echo "upstream_tag=$upstream_tag" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           if [[ "$VERIFY_ONLY" != "true" && "$REPAIR_DRAFT" != "true" ]] && printf '%s\n' "$releases" | grep -Fxq "$tag"; then
             echo "build=false" >> "$GITHUB_OUTPUT"
@@ -59,7 +68,7 @@ jobs:
       - name: Checkout exact upstream release tag
         id: source
         env:
-          UPSTREAM_TAG: ${{ needs.check.outputs.tag }}
+          UPSTREAM_TAG: ${{ needs.check.outputs.upstream_tag }}
         run: |
           set -euo pipefail
           mkdir upstream
@@ -124,7 +133,7 @@ jobs:
       - name: Checkout exact upstream release tag
         shell: bash
         env:
-          UPSTREAM_TAG: ${{ needs.check.outputs.tag }}
+          UPSTREAM_TAG: ${{ needs.check.outputs.upstream_tag }}
         run: |
           set -euo pipefail
           mkdir upstream
@@ -152,6 +161,10 @@ jobs:
       - name: Verify patch and types
         working-directory: upstream
         run: |
+          Push-Location packages/shared
+          vp test run src/semver.test.ts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
           Push-Location apps/server
           vp test run src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -162,7 +175,7 @@ jobs:
           Pop-Location
           vp run --filter t3 typecheck
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Align package versions with upstream release
+      - name: Align package versions with patched release
         working-directory: upstream
         env:
           TAG: ${{ needs.check.outputs.tag }}
@@ -197,8 +210,15 @@ jobs:
           }
       - name: Verify release assets
         working-directory: upstream
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
         run: |
           if (-not (Test-Path release/latest.yml)) { throw 'Missing latest.yml; refusing to publish.' }
+          $version = $env:TAG.Substring(1)
+          $latestYml = Get-Content release/latest.yml -Raw
+          if ($latestYml -notmatch "(?m)^version:\s*$([regex]::Escape($version))\s*$") {
+            throw "latest.yml version does not match expected version $version."
+          }
           $installers = @(Get-ChildItem release -Filter '*.exe')
           if ($installers.Count -ne 1) { throw "Expected exactly one installer, found $($installers.Count)." }
           $configs = @(Get-ChildItem $env:TEMP -Directory -Filter 't3code-desktop-win-stage-*' | ForEach-Object {
@@ -264,6 +284,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           TAG: ${{ needs.check.outputs.tag }}
+          UPSTREAM_TAG: ${{ needs.check.outputs.upstream_tag }}
         working-directory: upstream
         run: |
           $assets = @(Get-ChildItem release -File | Where-Object { $_.Extension -in '.exe', '.yml', '.blockmap' } | ForEach-Object { $_.FullName })
@@ -274,6 +295,6 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             gh release edit $env:TAG --repo $env:REPO --draft=false --latest
           } else {
-            gh release create $env:TAG @assets --repo $env:REPO --title "Patched T3 Code $env:TAG" --notes "Based on upstream release $env:TAG. Includes the built-in t3_usage_limits MCP tool. Windows x64 build; unsigned." --latest
+            gh release create $env:TAG @assets --repo $env:REPO --title "Patched T3 Code $env:TAG" --notes "Based on upstream release $env:UPSTREAM_TAG. Includes the built-in t3_usage_limits MCP tool and post-release patch updater support. Windows x64 build; unsigned." --latest
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

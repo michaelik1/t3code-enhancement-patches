@@ -1,12 +1,17 @@
 {
   "base_release": "v0.1.9",
   "base_commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76",
+  "patch_version": "1.0",
   "files": {
+    "apps/desktop/src/electron/ElectronUpdater.ts": "503258384ba3592d80099dd22c177712a931fc687a876214d697422e442f4196",
+    "apps/desktop/src/updates/DesktopUpdates.ts": "027478f303b25d01295568b1fdff1e5ab83549174d20d8dcd1c87d94ff905717",
     "apps/server/src/mcp/toolkits/orchestrator/tools.ts": "c0323787632ba825753d5278a2b1e9a806b66cc8317d5c2d23fb74b492bc85bb",
     "apps/server/src/mcp/toolkits/orchestrator/handlers.ts": "ce9941d24795e63718c13e7c33dce637ac7af8914490173ab78dd4e04b8ca70b",
     "apps/server/src/provider/ProviderRegistry.ts": "1805f99a7ced9b05bf9a71157cce1347de1aa78965dbfeed8e74bcdae57e8157",
     "apps/server/src/usage/UsageLimitSources.ts": "932b15135889f24b1ef1b353e69220c96857804fc832aa26b092b80369e9a1c1",
     "packages/contracts/src/providerUsageLimits.ts": "05635bce6261698b8d49cfc8d05ceaaa6a1629d6caa0785476117ee0d0fdda68",
+    "packages/shared/src/semver.ts": "0d52a9c7b2dab89fe8d00e967b3db3669c66f8dcb7cc0ef1c7b07475a07dd1fc",
+    "packages/shared/src/semver.test.ts": "cb47f119fb0ae3981eaedc693e4f80ee8238213cf9cd479cf59d6c08ebdc69d2",
     "apps/server/src/mcp/McpHttpServer.ts": "bf29b7cbc2cfadfcf8e419873959c39bd50b4c59737dfab63dcd85006072feaf",
     "apps/server/src/mcp/McpToolAccess.ts": "17a5a70ffa74153911e3092c4358a6e6d3dd3703d78512914434850df1250df1",
     "scripts/build-desktop-artifact.ts": "a26b7b2d2a7ab052a2cf538ce0f33baf2b1e1615e630d8ed4a72ea10330d6c27",
