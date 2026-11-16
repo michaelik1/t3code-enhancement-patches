@@ -92,6 +92,14 @@ function comparePrereleaseIdentifier(left: string, right: string): number {
   return left.localeCompare(right);
 }
 
+function isPostReleasePatch(prerelease: ReadonlyArray<string>): boolean {
+  return (
+    prerelease[0] === "patch" &&
+    prerelease.length >= 2 &&
+    prerelease.slice(1).every((segment) => SEMVER_NUMBER_SEGMENT.test(segment))
+  );
+}
+
 export function compareSemverVersions(left: string, right: string): number {
   const parsedLeft = parseSemver(left);
   const parsedRight = parseSemver(right);
@@ -109,14 +117,15 @@ export function compareSemverVersions(left: string, right: string): number {
     return parsedLeft.patch - parsedRight.patch;
   }
 
-  if (parsedLeft.prerelease.length === 0 && parsedRight.prerelease.length === 0) {
+  const leftRank =
+    parsedLeft.prerelease.length === 0 ? 0 : isPostReleasePatch(parsedLeft.prerelease) ? 1 : -1;
+  const rightRank =
+    parsedRight.prerelease.length === 0 ? 0 : isPostReleasePatch(parsedRight.prerelease) ? 1 : -1;
+  if (leftRank !== rightRank) {
+    return leftRank - rightRank;
+  }
+  if (leftRank === 0) {
     return 0;
-  }
-  if (parsedLeft.prerelease.length === 0) {
-    return 1;
-  }
-  if (parsedRight.prerelease.length === 0) {
-    return -1;
   }
 
   const length = Math.max(parsedLeft.prerelease.length, parsedRight.prerelease.length);

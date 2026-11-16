@@ -1,3 +1,4 @@
+import { compareSemverVersions, parseSemver } from "@t3tools/shared/semver";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -7,6 +8,25 @@ import * as Scope from "effect/Scope";
 import { autoUpdater } from "electron-updater";
 
 type AutoUpdater = typeof autoUpdater;
+
+export function isPatchedUpdateAvailable(
+  currentVersion: string,
+  candidateVersion: string,
+  allowDowngrade: boolean,
+): boolean | null {
+  if (parseSemver(candidateVersion) === null || parseSemver(currentVersion) === null) {
+    return null;
+  }
+  const comparison = compareSemverVersions(candidateVersion, currentVersion);
+  if (comparison === 0) {
+    return false;
+  }
+  return comparison > 0 ? true : allowDowngrade;
+}
+
+let defaultIsUpdateAvailable:
+  | ((updateInfo: Parameters<AutoUpdater["isUpdateAvailable"]>[0]) => boolean)
+  | undefined;
 
 export type ElectronUpdaterFeedUrl = Parameters<AutoUpdater["setFeedURL"]>[0];
 
@@ -134,6 +154,14 @@ export const make = ElectronUpdater.of({
     },
   ),
   checkForUpdates: Effect.suspend(() => {
+    defaultIsUpdateAvailable ??= autoUpdater.isUpdateAvailable.bind(autoUpdater);
+    const fallback = defaultIsUpdateAvailable;
+    autoUpdater.isUpdateAvailable = (updateInfo) =>
+      isPatchedUpdateAvailable(
+        autoUpdater.currentVersion.version,
+        updateInfo.version,
+        autoUpdater.allowDowngrade,
+      ) ?? fallback(updateInfo);
     const channel = autoUpdater.channel;
     return Effect.tryPromise({
       try: () => autoUpdater.checkForUpdates(),
