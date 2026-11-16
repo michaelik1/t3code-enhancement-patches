@@ -39,6 +39,7 @@ import { PullRequestService } from "../pullRequest/PullRequestService.ts";
 import { ScheduledTaskService } from "../scheduledTasks/ScheduledTaskService.ts";
 import { SecretRequests } from "../secrets/SecretRequests.ts";
 import { ServerSettingsService } from "../serverSettings.ts";
+import { SkillLibrary } from "../skills/SkillLibrary.ts";
 import { SourceControlRepositoryService } from "../sourceControl/SourceControlRepositoryService.ts";
 import { GitVcsDriver } from "../vcs/GitVcsDriver.ts";
 import { VcsStatusBroadcaster } from "../vcs/VcsStatusBroadcaster.ts";
@@ -75,6 +76,7 @@ const toolHandlerServices = Layer.mergeAll(
   Layer.mock(RemoteDelegation)({}),
   Layer.mock(ScheduledTaskService)({}),
   Layer.mock(SecretRequests)({}),
+  Layer.mock(SkillLibrary)({}),
   ServerConfig.layerTest(process.cwd(), { prefix: "t3-agent-context-budget-" }),
   Layer.mock(ServerEnvironment)({}),
   Layer.mock(ServerSecretStore)({}),
@@ -155,5 +157,14 @@ it.effect("agent context matches the committed budget", () =>
       measured,
       "Set agentContextBudget.json to the measured values. Before you cut text to fit, run the evals that cover it (evals/README.md).",
     ).toEqual(budget);
+  }).pipe(Effect.provide(layerAdvertisedTools)),
+);
+
+// Settings → Tools lists t3-code's tools from T3_MCP_TOOLKITS, without a session.
+it.effect("Settings → Tools lists every tool the T3 MCP server registers", () =>
+  Effect.gen(function* () {
+    const mcp = yield* McpServer.McpServer;
+    const listed = McpHttpServer.T3_MCP_TOOLKITS.flatMap((toolkit) => Object.keys(toolkit.tools));
+    expect(listed.toSorted()).toEqual(mcp.tools.map(({ tool }) => tool.name).toSorted());
   }).pipe(Effect.provide(layerAdvertisedTools)),
 );
