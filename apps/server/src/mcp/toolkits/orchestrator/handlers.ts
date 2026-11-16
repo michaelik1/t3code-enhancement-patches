@@ -36,8 +36,9 @@ export function usageLimitsSnapshot(providers: ReadonlyArray<ServerProvider>, so
 const handlers = {
   t3_usage_limits: McpToolAccess.readsAsCaller(() =>
     Effect.gen(function* () {
-      const providers = yield* ProviderRegistry.ProviderRegistry.pipe(Effect.flatMap((r) => r.getProviders));
       const service = yield* Effect.serviceOption(UsageLimitSources.UsageLimitSources);
+      yield* Option.match(service, { onNone: () => Effect.void, onSome: (s) => s.refresh });
+      const providers = yield* ProviderRegistry.ProviderRegistry.pipe(Effect.flatMap((r) => r.refresh()));
       const sources = yield* Option.match(service, { onNone: () => Effect.succeed([]), onSome: (s) => s.current });
       const snapshot = usageLimitsSnapshot(providers, sources);
       return Option.isNone(service) ? { ...snapshot, sourceErrors: [...snapshot.sourceErrors, { source: "hubs", message: "Usage hub service unavailable" }] } : snapshot;

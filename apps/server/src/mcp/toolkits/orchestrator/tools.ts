@@ -72,7 +72,7 @@ const threadMetadataDependencies = [
 ];
 
 const UsageLimitsTool = Tool.make("t3_usage_limits", {
-  description: "Read the latest T3 subscription quota snapshots for all provider instances and usage hubs on this environment. Values may be stale; usedPercent is consumed, not remaining. Does not refresh quotas.",
+  description: "Refresh and read the latest T3 subscription quota snapshots for all provider instances and usage hubs on this environment. usedPercent is consumed, not remaining.",
   success: Schema.Struct({
     accounts: Schema.Array(Schema.Struct({
       id: Schema.String,
