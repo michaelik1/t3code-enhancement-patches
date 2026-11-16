@@ -1,4 +1,8 @@
-import { OrchestratorMcpFailure, type ServerProvider, type UsageLimitSourceSnapshot } from "@t3tools/contracts";
+import {
+  OrchestratorMcpFailure,
+  type ServerProvider,
+  type UsageLimitSourceSnapshot,
+} from "@t3tools/contracts";
 import { OrchestratorToolkit } from "./tools.ts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -15,33 +19,63 @@ import * as McpToolAccess from "../../McpToolAccess.ts";
 import * as OrchestratorMcpService from "../../OrchestratorMcpService.ts";
 import * as ThreadMetadataMcpService from "../../ThreadMetadataMcpService.ts";
 
-export function usageLimitsSnapshot(providers: ReadonlyArray<ServerProvider>, sources: ReadonlyArray<UsageLimitSourceSnapshot>) {
+export function usageLimitsSnapshot(
+  providers: ReadonlyArray<ServerProvider>,
+  sources: ReadonlyArray<UsageLimitSourceSnapshot>,
+) {
   return {
     accounts: [
       ...providers.map((p) => ({
-        id: p.instanceId, provider: p.driver, label: p.displayName ?? p.instanceId,
-        source: "local", enabled: p.enabled, checkedAt: p.usageLimits?.checkedAt ?? null,
+        id: p.instanceId,
+        provider: p.driver,
+        label: p.displayName ?? p.instanceId,
+        source: "local",
+        enabled: p.enabled,
+        checkedAt: p.usageLimits?.checkedAt ?? null,
         unavailable: p.usageLimits?.unavailable?.reason ?? (p.usageLimits ? null : "no_snapshot"),
         windows: p.usageLimits?.windows ?? [],
       })),
-      ...sources.flatMap((s) => s.accounts.map((a) => ({
-        id: a.id, provider: a.driver, label: a.email ?? a.id,
-        source: s.label, enabled: true, checkedAt: a.usageLimits.checkedAt,
-        unavailable: a.usageLimits.unavailable?.reason ?? null, windows: a.usageLimits.windows,
-      }))),
+      ...sources.flatMap((s) =>
+        s.accounts.map((a) => ({
+          id: a.id,
+          provider: a.driver,
+          label: a.email ?? a.id,
+          source: s.label,
+          enabled: true,
+          checkedAt: a.usageLimits.checkedAt,
+          unavailable: a.usageLimits.unavailable?.reason ?? null,
+          windows: a.usageLimits.windows,
+        })),
+      ),
     ],
-    sourceErrors: sources.filter((s) => s.error).map((s) => ({ source: s.label, message: s.error! })),
+    sourceErrors: sources
+      .filter((s) => s.error)
+      .map((s) => ({ source: s.label, message: s.error! })),
   };
 }
 
 const handlers = {
-  t3_usage_limits: McpToolAccess.readsAsCaller(() =>
+  t3_usage_limits: McpToolAccess.reads(() =>
     Effect.gen(function* () {
-      const providers = yield* ProviderRegistry.ProviderRegistry.pipe(Effect.flatMap((r) => r.getProviders));
       const service = yield* Effect.serviceOption(UsageLimitSources.UsageLimitSources);
-      const sources = yield* Option.match(service, { onNone: () => Effect.succeed([]), onSome: (s) => s.current });
+      yield* Option.match(service, { onNone: () => Effect.void, onSome: (s) => s.refresh });
+      const providers = yield* ProviderRegistry.ProviderRegistry.pipe(
+        Effect.flatMap((r) => r.refresh()),
+      );
+      const sources = yield* Option.match(service, {
+        onNone: () => Effect.succeed([]),
+        onSome: (s) => s.current,
+      });
       const snapshot = usageLimitsSnapshot(providers, sources);
-      return Option.isNone(service) ? { ...snapshot, sourceErrors: [...snapshot.sourceErrors, { source: "hubs", message: "Usage hub service unavailable" }] } : snapshot;
+      return Option.isNone(service)
+        ? {
+            ...snapshot,
+            sourceErrors: [
+              ...snapshot.sourceErrors,
+              { source: "hubs", message: "Usage hub service unavailable" },
+            ],
+          }
+        : snapshot;
     }),
   ),
   orchestrator_capabilities: McpToolAccess.reads((input) =>
