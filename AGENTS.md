@@ -225,7 +225,7 @@ This repository is a custom fork of `pingdotgg/t3code` that maintains several in
   - `origin`: `git@github.com:michaelik1/t3code-enhancement-patches.git`
   - `upstream`: `https://github.com/pingdotgg/t3code.git`
 - **Base branch:**
-  - `main` (and `origin/upstream-base`): Clean import of the upstream release tag (currently `v0.1.9`, commit `04fcad9f4` / upstream `24e77473ec`).
+  - `main` (and `origin/upstream-base`): Clean import of the upstream release tag (currently `v0.1.10`, commit `0ecc411d3` / upstream `7d32075e37`).
 - **Feature branches (all branched off `main` / upstream release tag):**
   1. `feat/custom-updater`:
      - Teaches T3 Code's version comparator (`packages/shared/src/semver.ts`) and `ElectronUpdater` (`apps/desktop/src/electron/ElectronUpdater.ts`) to support and order `<upstream>-patch.<major>.<minor>` versions (`0.1.9 < 0.1.9-patch.1.0 < 0.1.9-patch.2.0 < 0.1.10-patch.1.0`).
@@ -242,7 +242,7 @@ This repository is a custom fork of `pingdotgg/t3code` that maintains several in
 - **Legacy reference branch:**
   - `legacy-patch-mode`: Old script-based patch overlay setup (`patches/`, `scripts/apply-patch.mjs`). Replaced by the multi-branch git workflow above.
 
-### 2. Key Adaptations Made When Porting `feat/tools-and-skills` to `v0.1.9`
+### 2. Key Adaptations Made When Porting `feat/tools-and-skills` to `v0.1.9+`
 
 If you rebase `feat/tools-and-skills` onto a newer upstream release or pull new commits from upstream PR `#17691`, watch out for these critical adaptations:
 
@@ -256,7 +256,7 @@ If you rebase `feat/tools-and-skills` onto a newer upstream release or pull new 
 3. **MCP Tool List Context Budget (`agentContextBudget.json`):**
    - Adding `t3_usage_limits` (from `feat/usage-limits`) and `t3_tools_*` / `t3_skills_*` (from `feat/tools-and-skills`) increases the serialized MCP tool list size checked by `apps/server/src/provider/AgentContextBudget.test.ts`.
    - In `apps/server/src/provider/AgentContextBudget.test.ts`, `McpHttpServer.layerInProcessMcpServer` requires `ToolsAndSkillsAdmin` / `SkillLibrary` layers.
-   - When merging into `release`, update `mcpToolListJsonBytes` in `apps/server/src/provider/agentContextBudget.json` to match the combined toolset (currently `51304` bytes on `release`).
+   - When merging into `release`, update `mcpToolListJsonBytes` in `apps/server/src/provider/agentContextBudget.json` to match the combined toolset (currently `52097` bytes on `release`).
 
 ### 3. Step-by-Step: Porting a New Upstream T3 Code Release (e.g. `v0.1.10`)
 
@@ -267,7 +267,7 @@ If you rebase `feat/tools-and-skills` onto a newer upstream release or pull new 
    git reset --hard v0.1.10 # or merge/import the new upstream tag
    git push origin main --force-with-lease
    ```
-   *(Note: If the repo is in a sparse checkout and `git checkout` complains about `.repos/effect`, keep sparse-checkout excluding `!/.repos/` or run `git sparse-checkout disable` if `.repos` was removed).*
+   _(Note: If the repo is in a sparse checkout and `git checkout` complains about `.repos/effect`, keep sparse-checkout excluding `!/.repos/` or run `git sparse-checkout disable` if `.repos` was removed)._
 2. **Rebase each feature branch onto the new `main`:**
    ```powershell
    git checkout feat/custom-updater
@@ -284,7 +284,7 @@ If you rebase `feat/tools-and-skills` onto a newer upstream release or pull new 
 
    git checkout feat/custom-ci
    git rebase main
-   # Update patch-release.json: set "upstream_tag": "v0.1.10", "patch_version": "1.0" (or "2.0")
+   # Update patch-release.json: set "upstream_tag": "v0.1.10" and KEEP "patch_version": "2.0" (do NOT reset patch_version to 1.0 — it tracks the patch feature generation, where 2.0 includes Tools & Skills)
    git add patch-release.json
    git commit --amend --no-edit # or create a bump commit
    git push origin feat/custom-ci --force-with-lease
@@ -292,7 +292,7 @@ If you rebase `feat/tools-and-skills` onto a newer upstream release or pull new 
 3. **Rebuild the `release` branch:**
    ```powershell
    git checkout -B release main
-   git merge feat/custom-updater feat/usage-limits feat/tools-and-skills feat/custom-ci -m "Merge feat/custom-updater, feat/usage-limits, feat/tools-and-skills, and feat/custom-ci into release (v0.1.10-patch.1.0)"
+   git merge feat/custom-updater feat/usage-limits feat/tools-and-skills feat/custom-ci -m "Merge feat/custom-updater, feat/usage-limits, feat/tools-and-skills, and feat/custom-ci into release (v0.1.10-patch.2.0)"
    ```
 4. **Verify tests, typecheck, and `AgentContextBudget` locally:**
    ```powershell
@@ -300,7 +300,7 @@ If you rebase `feat/tools-and-skills` onto a newer upstream release or pull new 
    vp test run apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts apps/server/src/provider/AgentContextBudget.test.ts
    vp run --filter t3 typecheck
    ```
-   *(If `AgentContextBudget.test.ts` reports a new byte count for `mcpToolListJsonBytes`, update `apps/server/src/provider/agentContextBudget.json` and amend the merge commit).*
+   _(If `AgentContextBudget.test.ts` reports a new byte count for `mcpToolListJsonBytes`, update `apps/server/src/provider/agentContextBudget.json` and amend the merge commit)._
 5. **Push `release` and trigger the GitHub Actions release build:**
    ```powershell
    git push origin release --force-with-lease
@@ -310,4 +310,3 @@ If you rebase `feat/tools-and-skills` onto a newer upstream release or pull new 
    - Watch the workflow run with `gh run list -R michaelik1/t3code-enhancement-patches --workflow release.yml` / `gh run watch <run-id> -R michaelik1/t3code-enhancement-patches`.
    - The workflow builds `patched-wsl-runtime` on Ubuntu (`build-exe` + smoke test), then builds the Windows NSIS installer on `windows-2025`, verifies `latest.yml` and `wsl-runtime.tar.gz`, smoke-tests the packaged Electron server startup, and publishes the GitHub Release.
    - Update release notes if needed via `gh release edit <tag> -R michaelik1/t3code-enhancement-patches --notes "..."`.
-
