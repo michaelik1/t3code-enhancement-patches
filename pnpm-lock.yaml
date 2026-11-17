@@ -6,6 +6,9 @@ importers:
   .:
     configDependencies: {}
     packageManagerDependencies:
+      '@pnpm/exe':
+        specifier: 12.14.0
+        version: 12.14.0
       pnpm:
         specifier: 12.14.0
         version: 12.14.0
@@ -89,6 +92,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@pnpm/exe@12.14.0':
+    resolution: {integrity: sha512-iZCbiKegYUapNVkZY4O8vjXt9EF/j34LbDvew6qUM5g/HrxMY38cFJaoE8+5ZWQfbt2YCsLfufI5TTh+GxUbWw==}
+    engines: {node: '>=18.*'}
+    hasBin: true
+
   pnpm@12.14.0:
     resolution: {integrity: sha512-wYum2HmT09Fky16JSPMrLAbuhUSH4GzY2GeBNC+z5btGNDZwNHEehoArqpw3vqkGzhkprQjXCITJfYAd8TOJpg==}
     engines: {node: '>=18.*'}
@@ -137,6 +145,23 @@ snapshots:
 
   '@pnpm/exe.win32-x64@12.14.0':
     optional: true
+
+  '@pnpm/exe@12.14.0':
+    optionalDependencies:
+      '@pnpm/exe.android-arm64': 12.14.0
+      '@pnpm/exe.android-x64': 12.14.0
+      '@pnpm/exe.darwin-arm64': 12.14.0
+      '@pnpm/exe.darwin-x64': 12.14.0
+      '@pnpm/exe.freebsd-x64': 12.14.0
+      '@pnpm/exe.linux-arm64': 12.14.0
+      '@pnpm/exe.linux-arm64-musl': 12.14.0
+      '@pnpm/exe.linux-ppc64': 12.14.0
+      '@pnpm/exe.linux-riscv64': 12.14.0
+      '@pnpm/exe.linux-s390x': 12.14.0
+      '@pnpm/exe.linux-x64': 12.14.0
+      '@pnpm/exe.linux-x64-musl': 12.14.0
+      '@pnpm/exe.win32-arm64': 12.14.0
+      '@pnpm/exe.win32-x64': 12.14.0
 
   pnpm@12.14.0:
     optionalDependencies:
@@ -850,7 +875,7 @@ importers:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.3.321
-        version: 0.3.321(@anthropic-ai/sdk@0.93.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(supports-color@8.1.1)(zod@4.6.7))(zod@4.6.7)
+        version: 0.3.321(@anthropic-ai/sdk@0.93.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.29.0(supports-color@8.1.1)(zod@4.6.7))(zod@4.6.7)
       '@cursor/sdk':
         specifier: 1.3.1
         version: 1.3.1(patch_hash=74bb82d3804752a413af72c7ffedc5fb24039216ab85e3330874a4892a0fdce9)(zod@4.6.7)
@@ -863,6 +888,9 @@ importers:
       '@ff-labs/fff-node':
         specifier: 0.11.0
         version: 0.11.0(patch_hash=93f62a76399b435a76588b2bef237db0a1e85880c1ac0d0759c416e9cc579252)
+      '@modelcontextprotocol/sdk':
+        specifier: 1.29.0
+        version: 1.29.0(supports-color@8.1.1)(zod@4.6.7)
       '@muse-code/sdk':
         specifier: 1.4.6
         version: 1.4.6(patch_hash=7b495b607fc5d76b444c7c4d58821e839726a30e6f3c53564f0d59f2d5b42101)(@types/node@24.12.4)
@@ -950,6 +978,9 @@ importers:
       saxes:
         specifier: 6.0.0
         version: 6.0.0
+      skills:
+        specifier: 1.7.1
+        version: 1.7.1
       stream-chain:
         specifier: ^4.2.5
         version: 4.2.5
@@ -1265,13 +1296,13 @@ importers:
         version: 11.0.5
       use-sync-external-store:
         specifier: ^1.6.0
-        version: 1.6.0(react@19.3.0)
+        version: 1.7.0(react@19.3.0)
       vfile:
         specifier: ^6.0.3
         version: 6.0.3
       zustand:
         specifier: ^5.0.11
-        version: 5.0.14(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
+        version: 5.0.14(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.7.0(react@19.3.0))
     devDependencies:
       '@effect/platform-node':
         specifier: 4.1.2
@@ -4505,14 +4536,8 @@ packages:
     cpu: [x64, arm64]
     os: [darwin, linux, win32, android]
 
-  '@floating-ui/core@1.7.5':
-    resolution: {integrity: sha512-1Ih4WTWyw0+lKyFMcBHGbb5U5FtuHJuujoyyr5zTaWS5EYMeT6Jb2AuDeftsCsEuchO+mM2ij5+q9crhydzLhQ==}
-
   '@floating-ui/core@1.8.0':
     resolution: {integrity: sha512-0CIZ5itps/8x7BG8dEIhs53BvCUH2PCoogtakwRTut+Arm58sJooJ0AuZhLw2HJYIR5cMLNPBSS728sPho2khQ==}
-
-  '@floating-ui/dom@1.7.6':
-    resolution: {integrity: sha512-9gZSAI5XM36880PPMm//9dfiEngYoC6Am2izES1FF406YFsjvyBMmeJ2g4SAju3xWwtuynNRFL2s9hgxpLI5SQ==}
 
   '@floating-ui/dom@1.8.0':
     resolution: {integrity: sha512-yXSrzeHZBTZadLOlfyhCkJHNeLJnHRnRInwdZ40L7ZiaAtrBwoYlsDrX3v5zB1Utk7CLfzcOVnVVWoXEky7Ceg==}
@@ -4522,9 +4547,6 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
-
-  '@floating-ui/utils@0.2.11':
-    resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
@@ -4597,11 +4619,11 @@ packages:
     resolution: {integrity: sha512-EcyPojMY8hG5adDZGR/2h/m9jniqAnSND00gmiAErRLB1BQqMD9jrJaqsfoYF/UfPC8ocKZFUNSkTegoYqjF5w==}
     engines: {node: '>=20.10'}
 
-  '@hono/node-server@2.1.6':
-    resolution: {integrity: sha512-p/KH9MnfNcsm3sR6x4lNgm5j+QN4Et8srKredl9DZfXiyZ1UQ3aQ2YVpFLbqktYN5JI+DB+VZFKM2PqE5hLKjQ==}
-    engines: {node: '>=20'}
+  '@hono/node-server@1.19.19':
+    resolution: {integrity: sha512-Fy9R7PACOzHU9LDpfnuzVyuVYevKQRcEG2mZhmfc+DRdmayEd3RVfa2XOt2IgGcPNgA77Yk63KBszepcMFK5Ng==}
+    engines: {node: '>=18.14.1'}
     peerDependencies:
-      hono: ^4 || ^5.0.0-0
+      hono: ^4
 
   '@iarna/toml@2.2.5':
     resolution: {integrity: sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg==}
@@ -5002,8 +5024,8 @@ packages:
     resolution: {integrity: sha512-z8QBKqdfXLPzkLQuG4xp8hrVEMm1PZ1IgxMN2sMbJiFiAKOWXnAzogXn2W4aqIBlP1ea6U5yiqVquvUNM1Cj6Q==}
     engines: {node: '>=20'}
 
-  '@modelcontextprotocol/sdk@1.32.2':
-    resolution: {integrity: sha512-SWsVtH/0vULSQStoZ6xxH2K09Li8fXYTMC64ZeogCdpZ3XSi1eCPOByV1OpuJxuI3OcmHhosDWYyii07tpPsLw==}
+  '@modelcontextprotocol/sdk@1.29.0':
+    resolution: {integrity: sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -12045,6 +12067,11 @@ packages:
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
 
+  skills@1.7.1:
+    resolution: {integrity: sha512-LUHR/+3D3evhwejiMfBStH7ndqJkV9UlwkjH1LpQ8j1g1cJO1yrXs+R+xS0AuV6E7iX0uZt44xEMAPZC+o40nA==}
+    engines: {node: '>=22.20.0'}
+    hasBin: true
+
   slugify@1.6.9:
     resolution: {integrity: sha512-vZ7rfeehZui7wQs438JXBckYLkIIdfHOXsaVEUMyS5fHo1483l1bMdo0EDSWYclY0yZKFOipDy4KHuKs6ssvdg==}
     engines: {node: '>=8.0.0'}
@@ -12618,11 +12645,6 @@ packages:
     resolution: {integrity: sha512-FvRG9i1HSo0wagmX63Vrm8SnlUU3LMM3WyZkQ76RnslpBrX694AdG4A0zQBx2B3ZifFA0yv/BaEHGBnEax5rZg==}
     peerDependencies:
       react: '>=16.8'
-
-  use-sync-external-store@1.6.0:
-    resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   use-sync-external-store@1.7.0:
     resolution: {integrity: sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A==}
@@ -13243,10 +13265,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@anthropic-ai/claude-agent-sdk@0.3.321(@anthropic-ai/sdk@0.93.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.32.2(supports-color@8.1.1)(zod@4.6.7))(zod@4.6.7)':
+  '@anthropic-ai/claude-agent-sdk@0.3.321(@anthropic-ai/sdk@0.93.0(zod@4.6.7))(@modelcontextprotocol/sdk@1.29.0(supports-color@8.1.1)(zod@4.6.7))(zod@4.6.7)':
     dependencies:
       '@anthropic-ai/sdk': 0.93.0(zod@4.6.7)
-      '@modelcontextprotocol/sdk': 1.32.2(supports-color@8.1.1)(zod@4.6.7)
+      '@modelcontextprotocol/sdk': 1.29.0(supports-color@8.1.1)(zod@4.6.7)
       zod: 4.6.7
 
   '@anthropic-ai/sdk@0.93.0(zod@4.6.7)':
@@ -15191,20 +15213,9 @@ snapshots:
       '@ff-labs/fff-bin-win32-arm64': 0.11.0
       '@ff-labs/fff-bin-win32-x64': 0.11.0
 
-  '@floating-ui/core@1.7.5':
-    dependencies:
-      '@floating-ui/utils': 0.2.11
-    optional: true
-
   '@floating-ui/core@1.8.0':
     dependencies:
       '@floating-ui/utils': 0.2.12
-
-  '@floating-ui/dom@1.7.6':
-    dependencies:
-      '@floating-ui/core': 1.7.5
-      '@floating-ui/utils': 0.2.11
-    optional: true
 
   '@floating-ui/dom@1.8.0':
     dependencies:
@@ -15216,9 +15227,6 @@ snapshots:
       '@floating-ui/dom': 1.8.0
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
-
-  '@floating-ui/utils@0.2.11':
-    optional: true
 
   '@floating-ui/utils@0.2.12': {}
 
@@ -15338,7 +15346,7 @@ snapshots:
 
   '@handy-computer/models@0.2.3': {}
 
-  '@hono/node-server@2.1.6(hono@4.13.17)':
+  '@hono/node-server@1.19.19(hono@4.13.17)':
     dependencies:
       hono: 4.13.17
 
@@ -15653,9 +15661,9 @@ snapshots:
     dependencies:
       zod: 4.6.7
 
-  '@modelcontextprotocol/sdk@1.32.2(supports-color@8.1.1)(zod@4.6.7)':
+  '@modelcontextprotocol/sdk@1.29.0(supports-color@8.1.1)(zod@4.6.7)':
     dependencies:
-      '@hono/node-server': 2.1.6(hono@4.13.17)
+      '@hono/node-server': 1.19.19(hono@4.13.17)
       ajv: 8.20.0
       ajv-formats: 3.0.1
       content-type: 1.0.5
@@ -16669,7 +16677,7 @@ snapshots:
       react: 19.3.0
       react-is: 19.2.7
       use-latest-callback: 0.2.6(react@19.3.0)
-      use-sync-external-store: 1.6.0(react@19.3.0)
+      use-sync-external-store: 1.7.0(react@19.3.0)
 
   '@react-navigation/elements@2.9.45(83450c2b8dad8f97d4bec4849f35b99e)':
     dependencies:
@@ -16679,7 +16687,7 @@ snapshots:
       react-native: 0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6)
       react-native-safe-area-context: 5.11.1(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(react@19.3.0)
       use-latest-callback: 0.2.6(react@19.3.0)
-      use-sync-external-store: 1.6.0(react@19.3.0)
+      use-sync-external-store: 1.7.0(react@19.3.0)
     optionalDependencies:
       '@react-native-masked-view/masked-view': 0.3.2(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(react@19.3.0)
 
@@ -17023,14 +17031,14 @@ snapshots:
       '@tanstack/store': 0.8.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
-      use-sync-external-store: 1.6.0(react@19.3.0)
+      use-sync-external-store: 1.7.0(react@19.3.0)
 
   '@tanstack/react-store@0.9.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@tanstack/store': 0.9.3
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
-      use-sync-external-store: 1.6.0(react@19.3.0)
+      use-sync-external-store: 1.7.0(react@19.3.0)
 
   '@tanstack/router-core@1.171.8':
     dependencies:
@@ -17123,7 +17131,7 @@ snapshots:
 
   '@tiptap/extension-bubble-menu@3.31.3(@tiptap/core@3.31.3(@tiptap/pm@3.31.3))(@tiptap/pm@3.31.3)':
     dependencies:
-      '@floating-ui/dom': 1.7.6
+      '@floating-ui/dom': 1.8.0
       '@tiptap/core': 3.31.3(@tiptap/pm@3.31.3)
       '@tiptap/pm': 3.31.3
     optional: true
@@ -17255,7 +17263,7 @@ snapshots:
       fast-equals: 5.4.2
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
-      use-sync-external-store: 1.6.0(react@19.3.0)
+      use-sync-external-store: 1.7.0(react@19.3.0)
     optionalDependencies:
       '@tiptap/extension-bubble-menu': 3.31.3(@tiptap/core@3.31.3(@tiptap/pm@3.31.3))(@tiptap/pm@3.31.3)
       '@tiptap/extension-floating-menu': 3.31.3(@floating-ui/dom@1.8.0)(@tiptap/core@3.31.3(@tiptap/pm@3.31.3))(@tiptap/pm@3.31.3)
@@ -23178,6 +23186,11 @@ snapshots:
 
   sisteransi@1.0.5: {}
 
+  skills@1.7.1:
+    dependencies:
+      tar: 7.5.22
+      yaml: 2.9.0
+
   slugify@1.6.9: {}
 
   smol-toml@1.9.1: {}
@@ -23687,10 +23700,6 @@ snapshots:
     dependencies:
       react: 19.3.0
 
-  use-sync-external-store@1.6.0(react@19.3.0):
-    dependencies:
-      react: 19.3.0
-
   use-sync-external-store@1.7.0(react@19.3.0):
     dependencies:
       react: 19.3.0
@@ -24189,11 +24198,11 @@ snapshots:
 
   zod@4.6.7: {}
 
-  zustand@5.0.14(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0)):
+  zustand@5.0.14(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.7.0(react@19.3.0)):
     optionalDependencies:
       '@types/react': 19.3.0
       react: 19.3.0
-      use-sync-external-store: 1.6.0(react@19.3.0)
+      use-sync-external-store: 1.7.0(react@19.3.0)
 
   zwitch@2.0.4: {}
 

@@ -212,3 +212,101 @@ Architecture and its constraints: `docs/internals/overview.md`. Glossary: `docs/
 ## Additional tips
 
 - Security is important, but should not be over-indexed on, especially for dev mode/maintainer-only features.
+
+---
+
+## Custom Fork & Patch Maintenance Playbook (`michaelik1/t3code-enhancement-patches`)
+
+This repository is a custom fork of `pingdotgg/t3code` that maintains several independent feature branches and merges them into `release` to publish patched Windows x64 + WSL runtime builds (`<upstream>-patch.<major>.<minor>`, e.g. `v0.1.9-patch.2.0`).
+
+### 1. Remotes & Branch Topology
+
+- **Remotes:**
+  - `origin`: `git@github.com:michaelik1/t3code-enhancement-patches.git`
+  - `upstream`: `https://github.com/pingdotgg/t3code.git`
+- **Base branch:**
+  - `main` (and `origin/upstream-base`): Clean import of the upstream release tag (currently `v0.1.10`, commit `0ecc411d3` / upstream `7d32075e37`).
+- **Feature branches (all branched off `main` / upstream release tag):**
+  1. `feat/custom-updater`:
+     - Teaches T3 Code's version comparator (`packages/shared/src/semver.ts`) and `ElectronUpdater` (`apps/desktop/src/electron/ElectronUpdater.ts`) to support and order `<upstream>-patch.<major>.<minor>` versions (`0.1.9 < 0.1.9-patch.1.0 < 0.1.9-patch.2.0 < 0.1.10-patch.1.0`).
+     - Forces `electron-builder` to emit `latest.yml` and bounds the native Windows compile cache separately (64 files) from the 80-file app payload limit in `scripts/build-desktop-artifact.ts`.
+  2. `feat/usage-limits`:
+     - Adds the built-in `t3_usage_limits` MCP tool (`apps/server/src/mcp/toolkits/orchestrator/tools.ts`, `handlers.ts`, `usageLimitsPatch.test.ts`) that actively refreshes and returns provider & hub usage limits on call, with native T3 icon and presentation (`packages/shared/src/t3McpToolPresentation.ts`, `packages/client-runtime/src/t3ToolSummary.ts`).
+  3. `feat/tools-and-skills`:
+     - Rebased & adapted port of maintainer PR `pingdotgg/t3code#17691` (`feat/tools-and-skills`). The original un-rebased upstream state is preserved in `feat/tools-and-skills-upstream` (`df3f7f899`).
+     - Provides global and project-level MCP Server management, Skill Library (`~/.agents/skills`, `~/.claude/skills`, `~/.codex/skills`), and Composer Tool Presets across all providers, plus `t3_tools_read`, `t3_tools_update`, `t3_skills_install`, and `t3_skills_remove` MCP tools.
+  4. `feat/custom-ci`:
+     - Replaces upstream GitHub Actions workflows with a custom `.github/workflows/release.yml` workflow (`Build patched T3 Code`), adds `patch-release.json` (`upstream_tag` and `patch_version`), and removes `.repos/effect` from git tracking to keep the repo light.
+- **Integration / Release branch:**
+  - `release`: Merge of `feat/custom-updater`, `feat/usage-limits`, `feat/tools-and-skills`, and `feat/custom-ci`.
+- **Legacy reference branch:**
+  - `legacy-patch-mode`: Old script-based patch overlay setup (`patches/`, `scripts/apply-patch.mjs`). Replaced by the multi-branch git workflow above.
+
+### 2. Key Adaptations Made When Porting `feat/tools-and-skills` to `v0.1.9+`
+
+If you rebase `feat/tools-and-skills` onto a newer upstream release or pull new commits from upstream PR `#17691`, watch out for these critical adaptations:
+
+1. **Effect `4.1.2` Crypto / Digest API change:**
+   - Upstream `v0.1.9` upgraded Effect to `4.1.2`, which removed `effect/Crypto` in favor of `effect/crypto/Digest` and `effect/crypto/SecureRandom`.
+   - In `apps/server/src/skills/SkillLibrary.ts` and `SkillLibrary.test.ts`, use `Digest.Digest` (`yield* Digest.Digest` and `digest.digestHex(Digest.sha256, ...)`).
+   - In `ClaudeAdapterV2.test.ts` and `CodexAdapterV2.test.ts`, provide `SecureRandom.SecureRandom` / `NodeCrypto.layer` where required by layer types.
+2. **WSL / Linux Single-Executable (`build-exe`) Bundler Check (`McpServerTools.ts`):**
+   - During the CI `wsl-runtime` job, `node apps/server/scripts/cli.ts build-exe --verbose` bundles the server into a single executable and fails with `ServerCliExecutableImportError` if the bundle leaves bare external ESM imports (`zod/v3`, `zod/v4`, `zod/v4-mini`) coming from `@modelcontextprotocol/sdk`.
+   - To fix this, `apps/server/src/mcpServers/McpServerTools.ts` loads `@modelcontextprotocol/sdk/client/index.js`, `stdio.js`, `sse.js`, and `streamableHttp.js` via `NodeModule.createRequire(import.meta.url)` so rolldown bundles the CJS build cleanly without external `zod/*` imports.
+3. **MCP Tool List Context Budget (`agentContextBudget.json`):**
+   - Adding `t3_usage_limits` (from `feat/usage-limits`) and `t3_tools_*` / `t3_skills_*` (from `feat/tools-and-skills`) increases the serialized MCP tool list size checked by `apps/server/src/provider/AgentContextBudget.test.ts`.
+   - In `apps/server/src/provider/AgentContextBudget.test.ts`, `McpHttpServer.layerInProcessMcpServer` requires `ToolsAndSkillsAdmin` / `SkillLibrary` layers.
+   - When merging into `release`, update `mcpToolListJsonBytes` in `apps/server/src/provider/agentContextBudget.json` to match the combined toolset (currently `52097` bytes on `release`).
+
+### 3. Step-by-Step: Porting a New Upstream T3 Code Release (e.g. `v0.1.10`)
+
+1. **Fetch upstream tag and update `main`:**
+   ```powershell
+   git fetch upstream --tags
+   git checkout main
+   git reset --hard v0.1.10 # or merge/import the new upstream tag
+   git push origin main --force-with-lease
+   ```
+   _(Note: If the repo is in a sparse checkout and `git checkout` complains about `.repos/effect`, keep sparse-checkout excluding `!/.repos/` or run `git sparse-checkout disable` if `.repos` was removed)._
+2. **Rebase each feature branch onto the new `main`:**
+   ```powershell
+   git checkout feat/custom-updater
+   git rebase main
+   git push origin feat/custom-updater --force-with-lease
+
+   git checkout feat/usage-limits
+   git rebase main
+   git push origin feat/usage-limits --force-with-lease
+
+   git checkout feat/tools-and-skills
+   git rebase main
+   git push origin feat/tools-and-skills --force-with-lease
+
+   git checkout feat/custom-ci
+   git rebase main
+   # Update patch-release.json: set "upstream_tag": "v0.1.10" and KEEP "patch_version": "2.0" (do NOT reset patch_version to 1.0 — it tracks the patch feature generation, where 2.0 includes Tools & Skills)
+   git add patch-release.json
+   git commit --amend --no-edit # or create a bump commit
+   git push origin feat/custom-ci --force-with-lease
+   ```
+3. **Rebuild the `release` branch:**
+   ```powershell
+   git checkout -B release main
+   git merge feat/custom-updater feat/usage-limits feat/tools-and-skills feat/custom-ci -m "Merge feat/custom-updater, feat/usage-limits, feat/tools-and-skills, and feat/custom-ci into release (v0.1.10-patch.2.0)"
+   ```
+4. **Verify tests, typecheck, and `AgentContextBudget` locally:**
+   ```powershell
+   vp test run packages/shared/src/semver.test.ts packages/shared/src/t3McpToolPresentation.test.ts
+   vp test run apps/server/src/mcp/toolkits/orchestrator/usageLimitsPatch.test.ts apps/server/src/provider/AgentContextBudget.test.ts
+   vp run --filter t3 typecheck
+   ```
+   _(If `AgentContextBudget.test.ts` reports a new byte count for `mcpToolListJsonBytes`, update `apps/server/src/provider/agentContextBudget.json` and amend the merge commit)._
+5. **Push `release` and trigger the GitHub Actions release build:**
+   ```powershell
+   git push origin release --force-with-lease
+   gh workflow run release.yml -R michaelik1/t3code-enhancement-patches --ref release
+   ```
+6. **Monitor and verify the release:**
+   - Watch the workflow run with `gh run list -R michaelik1/t3code-enhancement-patches --workflow release.yml` / `gh run watch <run-id> -R michaelik1/t3code-enhancement-patches`.
+   - The workflow builds `patched-wsl-runtime` on Ubuntu (`build-exe` + smoke test), then builds the Windows NSIS installer on `windows-2025`, verifies `latest.yml` and `wsl-runtime.tar.gz`, smoke-tests the packaged Electron server startup, and publishes the GitHub Release.
+   - Update release notes if needed via `gh release edit <tag> -R michaelik1/t3code-enhancement-patches --notes "..."`.

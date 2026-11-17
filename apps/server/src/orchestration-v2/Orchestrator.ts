@@ -80,6 +80,7 @@ import {
   managedRuntimeModeCeilingMessage,
 } from "@t3tools/contracts";
 import * as KeyedLock from "@t3tools/shared/KeyedLock";
+import { threadToolPresetsEqual } from "@t3tools/shared/agentTools";
 import { modelSelectionsEqual } from "@t3tools/shared/model";
 import { modelSwitchSince } from "./modelSwitch.ts";
 import { isPlaceholderThreadTitle } from "./placeholderThreadTitle.ts";
@@ -638,6 +639,7 @@ function commandThreadId(command: OrchestrationV2ServerCommand): ThreadId {
     case "thread.pin.reorder":
     case "thread.active.reorder":
     case "thread.tag.set":
+    case "thread.tool-presets.set":
     case "thread.visit":
     case "thread.mark-unread":
     case "thread.metadata.update":
@@ -3789,6 +3791,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       interactionMode: command.interactionMode,
       branch: command.branch,
       worktreePath: command.worktreePath,
+      ...(command.toolPresets === undefined ? {} : { toolPresets: command.toolPresets }),
       activeProviderThreadId: null,
       pullRequests: [],
       ...(command.linkOrigin === undefined ? {} : { linkOrigin: command.linkOrigin }),
@@ -4122,6 +4125,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           | "thread.unpin"
           | "thread.pin.reorder"
           | "thread.tag.set"
+          | "thread.tool-presets.set"
           | "thread.active.reorder"
           | "thread.mark-unread"
           | "thread.metadata.update"
@@ -4443,7 +4447,11 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       }
     }
 
+    const toolPresetsChanged =
+      command.type === "thread.tool-presets.set" &&
+      !threadToolPresetsEqual(command.toolPresets, thread.toolPresets);
     const needsProviderState =
+      toolPresetsChanged ||
       command.type === "thread.runtime-mode.set" ||
       command.type === "thread.model-selection.set" ||
       command.type === "provider.switch" ||
@@ -4511,7 +4519,9 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                   (session) => !session.capabilities.sessions.supportsRuntimeModeSwitchInSession,
                 )
                 .map((session) => session.id)
-            : (providerSwitchPlan?.releaseProviderSessionIds ?? []),
+            : toolPresetsChanged
+              ? (providerContext?.providerSessions ?? []).map((session) => session.id)
+              : (providerSwitchPlan?.releaseProviderSessionIds ?? []),
     );
     const liveSessions = (providerContext?.providerSessions ?? []).filter(
       (session) =>
@@ -4544,6 +4554,19 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     }
 
     const now = yield* DateTime.now;
+    if (toolPresetsChanged) {
+      const projection = yield* loadProjectionForCommand(command, ["runs", "runtimeRequests"], {
+        turnItemTypes: [],
+      });
+      // A session's tools are fixed when it opens, and replacing it would end the run.
+      if (threadHasUnfinishedWork(projection)) {
+        return yield* new OrchestratorDispatchError({
+          commandId: command.commandId,
+          commandType: command.type,
+          cause: "Tools can change once the thread's current work finishes.",
+        });
+      }
+    }
     if (command.type === "thread.metadata.update" && command.limitRecovery != null) {
       const projection = yield* loadProjectionForCommand(
         command,
@@ -4806,6 +4829,8 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
             updatedAt: thread.updatedAt,
           };
         }
+        case "thread.tool-presets.set":
+          return { ...thread, toolPresets: command.toolPresets };
         case "thread.tag.set": {
           const current = thread.tags ?? [];
           return {
@@ -5237,6 +5262,8 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           return "thread.active-reordered" as const;
         case "thread.tag.set":
           return "thread.tags-updated" as const;
+        case "thread.tool-presets.set":
+          return "thread.tool-presets-updated" as const;
         case "thread.mark-unread":
           return "thread.marked-unread" as const;
         case "thread.metadata.update":
@@ -5462,7 +5489,9 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                         ? "Workspace changed."
                         : command.type === "thread.runtime-mode.set"
                           ? "Runtime mode changed."
-                          : "Provider or model selection changed.",
+                          : command.type === "thread.tool-presets.set"
+                            ? "Tools changed."
+                            : "Provider or model selection changed.",
               },
             });
             const pendingEffect = {
@@ -5481,7 +5510,9 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                         ? "Workspace changed."
                         : command.type === "thread.runtime-mode.set"
                           ? "Runtime mode changed."
-                          : "Provider or model selection changed.",
+                          : command.type === "thread.tool-presets.set"
+                            ? "Tools changed."
+                            : "Provider or model selection changed.",
                 // Terminal detaches revoke MCP credentials; reattachments need other detach reasons to preserve them.
                 ...(command.type === "thread.archive" ? { revokeMcpCredential: true } : {}),
               },
@@ -15061,6 +15092,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       case "thread.pin.reorder":
       case "thread.active.reorder":
       case "thread.tag.set":
+      case "thread.tool-presets.set":
       case "thread.mark-unread":
       case "thread.pull-request.link":
       case "thread.pull-request.unlink":

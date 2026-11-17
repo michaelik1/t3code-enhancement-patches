@@ -7,6 +7,7 @@ export interface T3McpToolPresentation {
 
 export type T3McpToolSummaryAction =
   | "capabilities"
+  | "usage-limits"
   | "delegate"
   | "task-status"
   | "task-cancel"
@@ -57,6 +58,10 @@ export type T3McpToolSummaryAction =
   | "environment-update"
   | "theme-read"
   | "theme-set"
+  | "tools-read"
+  | "tools-update"
+  | "skills-install"
+  | "skills-remove"
   | "attachment-prepare"
   | "attachment-discard"
   | "attachment-send"
@@ -147,6 +152,10 @@ const T3_MCP_TOOLS: Readonly<Record<string, T3McpToolDefinition>> = {
   orchestrator_capabilities: tool(
     ["Get", "Getting", "Got", "orchestration capabilities"],
     "capabilities",
+  ),
+  t3_usage_limits: tool(
+    ["Get", "Getting", "Got", "usage limits"],
+    "usage-limits",
   ),
   delegate_task: tool(["Delegate", "Delegating", "Delegated", "a child task"], "delegate"),
   task_status: tool(["Get", "Getting", "Got", "delegated task status"], "task-status"),
@@ -359,6 +368,13 @@ const T3_MCP_TOOLS: Readonly<Record<string, T3McpToolDefinition>> = {
   ),
   t3_theme_read: tool(["Read", "Reading", "Read", "themes"], "theme-read"),
   t3_theme_set: tool(["Set", "Setting", "Set", "the theme"], "theme-set"),
+  t3_tools_read: tool(["Read", "Reading", "Read", "skills and MCP servers"], "tools-read"),
+  t3_tools_update: tool(
+    ["Update", "Updating", "Updated", "skills and MCP servers"],
+    "tools-update",
+  ),
+  t3_skills_install: tool(["Install", "Installing", "Installed", "skills"], "skills-install"),
+  t3_skills_remove: tool(["Remove", "Removing", "Removed", "a skill"], "skills-remove"),
   t3_thread_launch: tool(["Launch", "Launching", "Launched", "a project thread"], "thread-create"),
   t3_project_list: tool(["List", "Listing", "Listed", "projects"], "project-list"),
   t3_project_read: tool(["Read", "Reading", "Read", "a project"], "project-read"),

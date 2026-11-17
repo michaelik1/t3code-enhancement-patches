@@ -374,6 +374,18 @@ export function summarizeT3ToolCalls(
         quantity(countEntities(entityIds("environmentId")), "linked environment"),
       );
       break;
+    case "tools-read":
+      label = phrase("Checked", "check", `skills and MCP servers ${times}`);
+      break;
+    case "tools-update":
+      label = phrase("Updated", "update", `skills and MCP servers ${times}`);
+      break;
+    case "skills-install":
+      label = phrase("Installed", "install", `skills ${times}`);
+      break;
+    case "skills-remove":
+      label = phrase("Removed", "remove", `skills ${times}`);
+      break;
     case "attachment-prepare":
       label = phrase(
         "Prepared",
@@ -483,6 +495,9 @@ export function summarizeT3ToolCalls(
       break;
     case "capabilities":
       label = phrase("Checked", "check", `orchestration capabilities ${times}`);
+      break;
+    case "usage-limits":
+      label = phrase("Checked", "check", `usage limits ${times}`);
       break;
   }
   return { label, failedCount };

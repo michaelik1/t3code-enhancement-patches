@@ -28,6 +28,8 @@ import {
   type ProviderThreadId,
   type ProviderUserInputAnswers,
   type RuntimeMode,
+  mcpServerVariableRecord,
+  type ResolvedMcpServer,
   type RuntimeRequestId,
   type ThreadTokenUsageSnapshot,
   type ThreadId,
@@ -44,6 +46,8 @@ import {
   htmlRenderFromToolItem,
   mcpToolResultOutput,
 } from "@t3tools/shared/toolOutput";
+import * as HostProcess from "@t3tools/shared/HostProcess";
+import { SpawnExecutableResolution } from "@t3tools/shared/shell";
 import { FILE_HEADERS_ONLY, formatPatch, structuredPatch } from "diff";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
@@ -907,15 +911,50 @@ interface AcpMcpContext {
   readonly authorization?: string;
 }
 
+/**
+ * Settings → Tools servers as ACP entries. ACP wants an absolute command, so a bare name
+ * like `npx` is looked up on the agent's PATH (sent as typed if not found). Http entries
+ * are dropped later for agents that don't advertise http.
+ */
+function acpUserMcpServers(
+  servers: ReadonlyArray<ResolvedMcpServer>,
+  resolveCommand: (command: string) => string,
+): ReadonlyArray<EffectAcpSchema.McpServer> {
+  return servers.map((server) =>
+    server.transport.type === "stdio"
+      ? {
+          // Untyped like T3's own entry: the shape every ACP version accepts.
+          name: server.name,
+          command: resolveCommand(server.transport.command),
+          args: [...server.transport.args],
+          env: Object.entries(mcpServerVariableRecord(server.transport.env)).map(
+            ([name, value]) => ({ name, value }),
+          ),
+        }
+      : {
+          type: "http" as const,
+          name: server.name,
+          url: server.transport.url,
+          headers: Object.entries(mcpServerVariableRecord(server.transport.headers)).map(
+            ([name, value]) => ({ name, value }),
+          ),
+        },
+  );
+}
+
 function acpMcpContext(
   session: McpProviderSession.McpProviderSessionConfig | undefined,
   self: SelfInvocation,
   mcpOverHttp: boolean | undefined,
   deferMcpTools: boolean | undefined,
+  resolveCommand: (command: string) => string = (command) => command,
 ): AcpMcpContext {
   if (session === undefined) {
     return { servers: [], acpServers: [], httpServers: [] };
   }
+  // Both lists carry them: an agent that takes T3's server over ACP or HTTP
+  // gets only that list, so the user's servers would otherwise be lost.
+  const userServers = acpUserMcpServers(session.tools?.servers ?? [], resolveCommand);
   // codex-acp 1.2.0 and pi-acp drop injected HTTP servers, so HTTP is opt-in per flavor.
   return {
     servers: [
@@ -929,8 +968,9 @@ function acpMcpContext(
           { name: "T3_ACP_MCP_AUTHORIZATION", value: session.authorizationHeader },
         ],
       },
+      ...userServers,
     ],
-    acpServers: [{ type: "acp", name: "t3-code", serverId: "t3-code" }],
+    acpServers: [{ type: "acp", name: "t3-code", serverId: "t3-code" }, ...userServers],
     httpServers:
       mcpOverHttp === true
         ? [
@@ -945,6 +985,7 @@ function acpMcpContext(
                   : []),
               ],
             },
+            ...userServers,
           ]
         : [],
     endpoint: session.endpoint,
@@ -1829,6 +1870,11 @@ export const makeAcpAdapterV2 = Effect.fn("makeAcpAdapterV2")(function* (
   const host = yield* ProviderHost.ProviderHost;
   const mcpSessions = yield* McpProviderSessions.McpProviderSessions;
   const { flavor, selfInvocation: self } = options;
+  const resolveExecutable = yield* SpawnExecutableResolution;
+  const hostPlatform = yield* HostProcess.Platform;
+  const hostEnvironment = yield* HostProcess.Environment;
+  const resolveCommand = (command: string) =>
+    resolveExecutable(command, hostPlatform, hostEnvironment) ?? command;
   const readMcpContext = (threadId: ThreadId | null) =>
     threadId === null
       ? Effect.succeed(acpMcpContext(undefined, self, flavor.mcpOverHttp, flavor.deferMcpTools))
@@ -1836,7 +1882,7 @@ export const makeAcpAdapterV2 = Effect.fn("makeAcpAdapterV2")(function* (
           .read(threadId)
           .pipe(
             Effect.map((session) =>
-              acpMcpContext(session, self, flavor.mcpOverHttp, flavor.deferMcpTools),
+              acpMcpContext(session, self, flavor.mcpOverHttp, flavor.deferMcpTools, resolveCommand),
             ),
           );
   const driver = flavor.driver;

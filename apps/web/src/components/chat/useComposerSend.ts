@@ -363,6 +363,7 @@ export function useComposerSend(input: ComposerSendInput) {
     promptRef,
     runtimeMode,
     startFromOrigin,
+    toolPresets: draftThread?.toolPresets,
     resetLocalDispatch,
     setThreadError,
   });
@@ -1307,6 +1308,7 @@ export function useComposerSend(input: ComposerSendInput) {
                       modelSelection: threadCreateModelSelection,
                       runtimeMode,
                       interactionMode: DEFAULT_INTERACTION_MODE,
+                      ...(draftThread?.toolPresets ? { toolPresets: draftThread.toolPresets } : {}),
                       branch: activeThreadBranch,
                       worktreePath: activeThread.worktreePath,
                       createdAt: activeThread.createdAt,
