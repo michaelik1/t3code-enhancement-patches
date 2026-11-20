@@ -6,12 +6,15 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
+import * as NodeURL from "node:url";
 
 import * as ProjectService from "../project/ProjectService.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as McpServerTools from "./McpServerTools.ts";
 
-const fixture = new URL("./testFixtures/two-tool-mcp-server.mjs", import.meta.url).pathname;
+const fixture = NodeURL.fileURLToPath(
+  new URL("./testFixtures/two-tool-mcp-server.mjs", import.meta.url),
+);
 
 const stdioServer = (
   args: ReadonlyArray<string>,

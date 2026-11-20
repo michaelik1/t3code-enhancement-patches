@@ -141,6 +141,7 @@ const withLibrary = <A, E>(
       Effect.provideService(HostProcess.Environment, {
         ...process.env,
         HOME: home,
+        USERPROFILE: home,
         XDG_STATE_HOME: "",
       }),
       Effect.provideService(HostProcess.Arguments, [process.execPath, entry]),
