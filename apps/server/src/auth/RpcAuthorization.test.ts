@@ -9,7 +9,6 @@ import {
   ProviderDriverKind,
   ProjectId,
   ProviderInstanceId,
-  ProjectId,
   IssueTrackerKind,
   SecretProviderId,
   ThreadId,

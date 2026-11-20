@@ -24,28 +24,7 @@ Set it back to **Off** at any time; a recording in progress is discarded.
 If the chosen environment goes offline, voice input waits for it. T3 Code never
 substitutes another environment.
 
-For cloud dictation, choose **OpenAI** or **Grok Voice Transcribe** via the environment
-you want to use. If it needs a key, enter one and choose **Save and enable**.
-You can also choose a [secret provider](secrets.md) instead of **Value** and enter a
-reference. Unlock the vault on that environment before dictating. Anyone with
-dictation access to the environment can use the key, but only this device opts in.
-If a key is already saved, just confirm the provider. After
-you stop, the environment forwards your recording and any vocabulary hints to
-the selected provider, which bills its API account. No local model download or chat
-subscription is needed. Switch back to **This device** on mobile or **Off** on
-web and desktop to stop sharing. Removing the key stops that provider for everyone
-on the environment.
-
-**OpenRouter** works the same way but has no default model: pick one from its live
-speech-to-text catalog when you enable it, or later under **Manage OpenRouter**.
-The model choice is yours alone and needs no settings access, so anyone with
-dictation access can pick a different model without touching the saved key.
-OpenRouter chooses who runs the model. T3 requests zero data retention; your
-OpenRouter account can also allow safety retention. If no endpoint qualifies,
-dictation fails instead of switching models.
-Vocabulary hints are not sent to OpenRouter; dictionary spellings are applied
-after transcription. If OpenRouter stops listing your model, dictation stops
-until you choose another.
+Transcription uses a local model on the selected environment.
 
 ## Set up a model
 
@@ -86,7 +65,7 @@ while you record; models with built-in long-form support transcribe when you sto
 Press the microphone in the composer, or `mod+shift+d` (`mod` is Command on
 macOS and Ctrl elsewhere). Press again, or the check mark, to finish; `Esc`
 discards the recording and leaves your draft unchanged. Recordings last up to
-five minutes. Text is inserted at the cursor or replaces the selection you had
+one hour. Text is inserted at the cursor or replaces the selection you had
 when recording started, and the editor is read-only while dictation runs.
 Changes that reach the draft meanwhile, such as a cited message, are kept;
 the text then goes after your selection instead of replacing it.

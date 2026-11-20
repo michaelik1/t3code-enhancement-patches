@@ -1365,6 +1365,7 @@ export function VoiceSettingsPanel() {
     value: JSON.stringify(["environment", environment.environmentId]),
   }));
   const cloudGroups = environments
+    .filter(() => false)
     .filter(
       (environment) => environment.serverConfig?.environment.capabilities.cloudVoiceTranscription,
     )

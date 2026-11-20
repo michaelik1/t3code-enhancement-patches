@@ -98,6 +98,7 @@ const voiceConnections = (capability: "voiceTranscription" | "cloudVoiceTranscri
     Atom.make((get) => {
       const environment = get(environmentPresentations.presentationAtom(id));
       if (
+        capability === "cloudVoiceTranscription" ||
         !hasEnvironmentVoiceCapture ||
         environment?.connection.phase !== "connected" ||
         !environment.serverConfig?.environment.capabilities[capability] ||

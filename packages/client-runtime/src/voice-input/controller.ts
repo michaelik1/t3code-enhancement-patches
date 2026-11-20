@@ -12,7 +12,7 @@ import type { MFunctionType } from "gt-i18n/types";
 
 const isVoiceTranscriptionError = Schema.is(VoiceTranscriptionError);
 
-export const VOICE_RECORDING_LIMIT_SECONDS = 5 * 60;
+export const VOICE_RECORDING_LIMIT_SECONDS = 60 * 60;
 
 export const MICROPHONE_PERMISSION_ERROR = msg(
   "Microphone access is required for voice input. Allow access in your browser or system settings and try again.",

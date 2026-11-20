@@ -1435,6 +1435,7 @@ export const T3_MCP_TOOLKITS: ReadonlyArray<Toolkit.Any> = [
   PreviewControlsToolkit,
   WorktreeToolkit,
   PullRequestsToolkit,
+  IssuesToolkit,
   DeviceStandardToolkit,
   DeviceScreenshotToolkit,
   HtmlRenderToolkit,

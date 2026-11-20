@@ -1615,7 +1615,7 @@ export function isSettingsSearchScopeAvailable(
   }
 }
 
-function searchableSetting(id: SettingsSearchItemId): {
+export function searchableSetting(id: SettingsSearchItemId): {
   readonly id: string;
   readonly title: string;
 } {

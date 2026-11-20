@@ -24,7 +24,7 @@ import {
 import { executeAuthenticatedEnvironmentHttpRequest } from "../state/environmentHttpAuth.ts";
 import { VoiceTranscriptionError } from "./transcription.ts";
 
-const INFERENCE_OR_DOWNLOAD_TIMEOUT_MS = 30 * 60_000;
+const INFERENCE_OR_DOWNLOAD_TIMEOUT_MS = 60 * 60_000;
 const isCloudSpeechError = Schema.is(CloudSpeechError);
 type EnvironmentApiClient<G extends "voice" | "auth"> = Effect.Success<
   ReturnType<typeof makeEnvironmentHttpApiGroupClient<G>>
@@ -139,7 +139,7 @@ export const transcribeCloudPcm = (
     prepared,
     method: "POST",
     canSend,
-    timeoutMs: 130_000,
+    timeoutMs: 15 * 60_000,
     path: (urls) => urls.transcribeCloud({ params: { provider }, query }),
     run: ({ client, headers }) =>
       client.transcribeCloud({

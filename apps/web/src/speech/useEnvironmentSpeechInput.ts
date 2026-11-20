@@ -130,9 +130,7 @@ export function useVoiceTranscriptionDestination() {
   const provider = cloud?.provider;
   const model = cloud?.provider === "openrouter" ? cloud.model : undefined;
   const supported =
-    environment?.serverConfig?.environment.capabilities[
-      provider ? "cloudVoiceTranscription" : "voiceTranscription"
-    ] === true;
+    !provider && environment?.serverConfig?.environment.capabilities.voiceTranscription === true;
   return {
     ...(hydrated && choice === null ? { offerFirstRunSetup: true } : {}),
     environmentId,

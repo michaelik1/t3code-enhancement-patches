@@ -71,7 +71,7 @@ it("drains ordered PCM before finishing and replaces tentative hypotheses", asyn
 it("rejects recordings beyond the duration limit", async () => {
   const { socket, stream, onError } = connect();
   stream.feed(new Float32Array(SPEECH_STREAM_MAX_QUEUED_BYTES / 4 + 1));
-  await expect(stream.finish()).rejects.toThrow("limited to five minutes");
+  await expect(stream.finish()).rejects.toThrow("limited to one hour");
   expect(onError).toHaveBeenCalledOnce();
   expect(socket.sent).toHaveLength(0);
   expect(socket.closed).toBe(true);
