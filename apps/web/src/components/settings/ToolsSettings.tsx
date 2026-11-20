@@ -13,6 +13,7 @@ import {
   T3_MCP_SERVER_NAME,
 } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
+import { T, useGT, Var } from "gt-react";
 import {
   isSkillDisabled,
   mcpServerEnabledPatch,
@@ -67,7 +68,7 @@ import {
 import { SkillListSection, type SkillListRow, stopRowClick } from "./SkillList";
 import { useSettingsScope } from "./SettingsScopeContext";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 import {
   collectSkillRows,
   type FleetSkillRow,
@@ -197,10 +198,11 @@ export function ToolsSettings({
   readonly onOpenSkill: (name: string | null) => void;
   readonly onOpenServer: (name: string | null) => void;
 }) {
+  const gt = useGT();
   // Each tab puts these at the start of its own toolbar row.
   const tabs = (
     <ToggleGroup
-      aria-label="Tools"
+      aria-label={gt("Tools")}
       variant="segmented"
       value={[tab]}
       onValueChange={(next) => {
@@ -208,8 +210,12 @@ export function ToolsSettings({
         if (value === "skills" || value === "mcp") onTabChange(value);
       }}
     >
-      <Toggle value="skills">Skills</Toggle>
-      <Toggle value="mcp">MCP servers</Toggle>
+      <Toggle value="skills">
+        <T>Skills</T>
+      </Toggle>
+      <Toggle value="mcp">
+        <T>MCP servers</T>
+      </Toggle>
     </ToggleGroup>
   );
   return (
@@ -234,6 +240,8 @@ function SkillsPanel({
   openName: string | null;
   onOpen: (name: string | null) => void;
 }) {
+  const gt = useGT();
+  const searchableSetting = useSearchableSetting();
   const { scope, target, connectedEnvironments } = useSettingsScope();
   const environmentId = target?.environmentId ?? null;
   const targets = useToolsTargets();
@@ -386,7 +394,11 @@ function SkillsPanel({
     const messages = failures.filter((message) => message !== null);
     if (messages.length > 0) {
       setSkillActionError(
-        `Couldn't ${action} ${inputs[0]?.name ?? "the skill"}. ${messages.join(" ")}`,
+        gt("Couldn't {action} {name}. {messages}", {
+          action,
+          name: inputs[0]?.name ?? gt("the skill"),
+          messages: messages.join(" "),
+        }),
       );
     }
   };
@@ -503,7 +515,11 @@ function SkillsPanel({
     const bundle = await exportSkill({ environmentId: from, input: { name, target: level } });
     if (bundle._tag === "Failure") {
       setSkillActionError(
-        `Couldn't copy ${name} from ${environmentLabel(from)}: ${formatEnvironmentQueryError(bundle.cause)}`,
+        gt("Couldn't copy {name} from {environment}: {error}", {
+          name,
+          environment: environmentLabel(from),
+          error: formatEnvironmentQueryError(bundle.cause),
+        }),
       );
       doneSyncing(name);
       return;
@@ -527,7 +543,10 @@ function SkillsPanel({
       }),
     );
     const messages = failures.filter((message) => message !== null);
-    if (messages.length > 0) setSkillActionError(`Couldn't copy ${name}. ${messages.join(" ")}`);
+    if (messages.length > 0)
+      setSkillActionError(
+        gt("Couldn't copy {name}. {messages}", { name, messages: messages.join(" ") }),
+      );
     doneSyncing(name);
   };
 
@@ -594,12 +613,12 @@ function SkillsPanel({
         />
       ) : openName !== null ? (
         // A link or Back to a skill that isn't here (yet, or any more).
-        <SettingsSection title="Skills">
+        <SettingsSection title={gt("Skills")}>
           <SettingsRow
             title={
               refreshing || rows.length === 0
-                ? "Loading skills…"
-                : `No skill named “${openName}” here.`
+                ? gt("Loading skills…")
+                : gt("No skill named “{name}” here.", { name: openName })
             }
           />
         </SettingsSection>
@@ -619,10 +638,10 @@ function SkillsPanel({
                 </InputGroupAddon>
                 <InputGroupInput
                   size="sm"
-                  placeholder="Search skills…"
+                  placeholder={gt("Search skills…")}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  aria-label="Search skills"
+                  aria-label={gt("Search skills")}
                 />
               </InputGroup>
               {attentionNames.size > 0 || onlyAttention ? (
@@ -633,7 +652,10 @@ function SkillsPanel({
                         size="sm"
                         variant={onlyAttention ? "secondary" : "outline"}
                         aria-pressed={onlyAttention}
-                        aria-label={`Show only skills whose name is used more than once (${attentionNames.size})`}
+                        aria-label={gt(
+                          "Show only skills whose name is used more than once ({count})",
+                          { count: attentionNames.size },
+                        )}
                         onClick={() => setOnlyAttention((value) => !value)}
                       />
                     }
@@ -643,8 +665,10 @@ function SkillsPanel({
                   </TooltipTrigger>
                   <TooltipPopup side="top" className="max-w-xs">
                     {onlyAttention
-                      ? "Show all skills."
-                      : "Show only skills whose name is used by different skills. One switch turns all of them on or off."}
+                      ? gt("Show all skills.")
+                      : gt(
+                          "Show only skills whose name is used by different skills. One switch turns all of them on or off.",
+                        )}
                   </TooltipPopup>
                 </Tooltip>
               ) : null}
@@ -654,7 +678,7 @@ function SkillsPanel({
                     <Button
                       size="icon-sm"
                       variant="outline"
-                      aria-label={refreshing ? "Rescanning skills" : "Rescan skills"}
+                      aria-label={refreshing ? gt("Rescanning skills") : gt("Rescan skills")}
                       disabled={refreshing || environmentId === null}
                       onClick={() => void refresh(true)}
                     />
@@ -662,12 +686,14 @@ function SkillsPanel({
                 >
                   <RefreshIcon refreshing={refreshing} />
                 </TooltipTrigger>
-                <TooltipPopup side="top">Rescan skill folders</TooltipPopup>
+                <TooltipPopup side="top">
+                  <T>Rescan skill folders</T>
+                </TooltipPopup>
               </Tooltip>
               {installTarget !== null && canInstall ? (
                 <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
                   <PlusIcon className="size-3.5" aria-hidden />
-                  Add skills
+                  <T>Add skills</T>
                 </Button>
               ) : null}
             </div>
@@ -677,19 +703,21 @@ function SkillsPanel({
           </SettingsSection>
           {showSkeleton ? <SkillsSkeleton /> : null}
           {rows.length === 0 && !refreshing ? (
-            <SettingsSection title="Skills">
+            <SettingsSection title={gt("Skills")}>
               <SettingsRow
-                title="No skills yet"
-                description="Agents load skills from folders like ~/.agents/skills and .claude/skills. Add skills from a source, or put one there and rescan."
+                title={gt("No skills yet")}
+                description={gt(
+                  "Agents load skills from folders like ~/.agents/skills and .claude/skills. Add skills from a source, or put one there and rescan.",
+                )}
               />
             </SettingsSection>
           ) : rows.length > 0 && groups.length === 0 ? (
-            <SettingsSection title="Skills">
+            <SettingsSection title={gt("Skills")}>
               <SettingsRow
                 title={
                   onlyAttention && query.trim() === ""
-                    ? "No two skills share a name."
-                    : `No skills match “${query.trim()}”`
+                    ? gt("No two skills share a name.")
+                    : gt("No skills match “{query}”", { query: query.trim() })
                 }
               />
             </SettingsSection>
@@ -704,7 +732,7 @@ function SkillsPanel({
                   groupRows.map(listItem),
                   (item) => item.details.installed?.source ?? null,
                 )}
-                emptyText="No matching skills."
+                emptyText={gt("No matching skills.")}
                 agents={agents}
                 environments={environments}
                 canWrite={canWrite}
@@ -714,10 +742,12 @@ function SkillsPanel({
             ))
           )}
           <p className="px-3 text-xs text-muted-foreground sm:px-4">
-            Turning a skill off hides it from Claude, Codex and OpenCode, and from the composer's
-            skill menu. Other agents may still load it on their own. Changes apply to new sessions.
-            For one thread, turn a set of skills and servers on or off with a tool preset in the
-            composer's Tools menu.
+            <T>
+              Turning a skill off hides it from Claude, Codex and OpenCode, and from the composer's
+              skill menu. Other agents may still load it on their own. Changes apply to new
+              sessions. For one thread, turn a set of skills and servers on or off with a tool
+              preset in the composer's Tools menu.
+            </T>
           </p>
         </>
       )}
@@ -737,28 +767,42 @@ function SkillsPanel({
       >
         <AlertDialogPopup>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {removingSkill?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              <T>
+                Remove <Var>{removingSkill?.name}</Var>?
+              </T>
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {removingSkill?.installed ? (
                 <>
-                  Deletes the skill's folder and every agent's link to it, as{" "}
-                  <code>npx skills remove</code> does
+                  <T>
+                    Deletes the skill's folder and every agent's link to it, as{" "}
+                    <code>npx skills remove</code> does
+                  </T>
                 </>
               ) : (
-                `Deletes ${removingSkill?.name ?? "the skill"} from every agent's skill folder`
+                gt("Deletes {name} from every agent's skill folder", {
+                  name: removingSkill?.name ?? gt("the skill"),
+                })
               )}
               {removingSkill !== null && removingSkill.inputs.length > 1
-                ? ` on ${removingSkill.inputs.map((input) => environmentLabel(input.environmentId)).join(", ")}.`
+                ? gt(" on {environments}.", {
+                    environments: removingSkill.inputs
+                      .map((input) => environmentLabel(input.environmentId))
+                      .join(", "),
+                  })
                 : removingSkill?.inputs[0]?.target.kind === "project"
-                  ? " in this project."
-                  : " on this environment."}
+                  ? gt(" in this project.")
+                  : gt(" on this environment.")}
               {removingSkill?.installed
                 ? ""
-                : " It wasn't installed from a source, so it can't be added back from here."}
+                : gt(" It wasn't installed from a source, so it can't be added back from here.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+            <AlertDialogClose render={<Button variant="outline" />}>
+              <T>Cancel</T>
+            </AlertDialogClose>
             <Button
               variant="destructive"
               onClick={() => {
@@ -769,7 +813,7 @@ function SkillsPanel({
                 setRemovingSkill(null);
               }}
             >
-              Remove
+              <T>Remove</T>
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>
@@ -817,6 +861,8 @@ function McpServersPanel({
   openName: string | null;
   onOpen: (name: string | null) => void;
 }) {
+  const gt = useGT();
+  const searchableSetting = useSearchableSetting();
   const { scope, target, connectedEnvironments } = useSettingsScope();
   const targets = useToolsTargets();
   const persist = usePersistToolsPatch();
@@ -947,12 +993,12 @@ function McpServersPanel({
         />
       ) : openName !== null ? (
         // A link or Back to a server that isn't here (yet, or any more).
-        <SettingsSection title="MCP servers">
+        <SettingsSection title={gt("MCP servers")}>
           <SettingsRow
             title={
               environmentSettings === undefined
-                ? "Loading servers…"
-                : `No MCP server named “${openName}” here.`
+                ? gt("Loading servers…")
+                : gt("No MCP server named “{name}” here.", { name: openName })
             }
           />
         </SettingsSection>
@@ -963,24 +1009,30 @@ function McpServersPanel({
             {canEditServers ? (
               <Button size="sm" variant="outline" onClick={() => setEditor({ mode: "add" })}>
                 <PlusIcon className="size-3.5" aria-hidden />
-                Add server
+                <T>Add server</T>
               </Button>
             ) : null}
           </div>
           <SettingsSection
             {...searchableSetting("tools-mcp-servers")}
             // The tab already says MCP servers; a project splits its own from inherited ones.
-            title={isProjectScope ? "This project" : "MCP servers"}
+            title={isProjectScope ? gt("This project") : gt("MCP servers")}
             hideTitle={!isProjectScope}
           >
             {isProjectScope ? null : <T3McpServerRow onOpen={() => onOpen(T3_MCP_SERVER_NAME)} />}
             {ownRows.length === 0 ? (
               <SettingsRow
-                title={isProjectScope ? "No servers just for this project" : "No servers yet"}
+                title={
+                  isProjectScope ? gt("No servers just for this project") : gt("No servers yet")
+                }
                 description={
                   isProjectScope
-                    ? "Add one here to give only this project's agents a server, or to point a shared server at a different account."
-                    : "Servers added here reach every agent, next to the servers each agent already loads from its own config."
+                    ? gt(
+                        "Add one here to give only this project's agents a server, or to point a shared server at a different account.",
+                      )
+                    : gt(
+                        "Servers added here reach every agent, next to the servers each agent already loads from its own config.",
+                      )
                 }
               />
             ) : (
@@ -999,7 +1051,7 @@ function McpServersPanel({
             )}
           </SettingsSection>
           {isProjectScope && inheritedRows.length > 0 ? (
-            <SettingsSection title="Inherited">
+            <SettingsSection title={gt("Inherited")}>
               {inheritedRows.map((row) => (
                 <McpServerSettingsRow
                   key={row.name}
@@ -1015,16 +1067,20 @@ function McpServersPanel({
           ) : null}
           {!canManageServers && connectedEnvironments.length > 0 ? (
             <p className="px-3 text-xs text-muted-foreground sm:px-4">
-              Adding, editing or inspecting servers needs permission to manage providers on this
-              environment.
+              <T>
+                Adding, editing or inspecting servers needs permission to manage providers on this
+                environment.
+              </T>
             </p>
           ) : (
             <p className="px-3 text-xs text-muted-foreground sm:px-4">
-              Servers you add here are given to Claude, Codex, Cursor, OpenCode, Grok and other ACP
-              agents. Pi isn't supported yet. Changes apply to new sessions; use Restart agent
-              session to pick them up in an open thread. Open a server to see its tools. For one
-              thread, turn a set of skills and servers on or off with a tool preset in the
-              composer's Tools menu.
+              <T>
+                Servers you add here are given to Claude, Codex, Cursor, OpenCode, Grok and other
+                ACP agents. Pi isn't supported yet. Changes apply to new sessions; use Restart agent
+                session to pick them up in an open thread. Open a server to see its tools. For one
+                thread, turn a set of skills and servers on or off with a tool preset in the
+                composer's Tools menu.
+              </T>
             </p>
           )}
         </>
@@ -1080,13 +1136,21 @@ function McpServersPanel({
       <AlertDialog open={removing !== null} onOpenChange={(open) => !open && setRemoving(null)}>
         <AlertDialogPopup>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {removing?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              <T>
+                Remove <Var>{removing?.name}</Var>?
+              </T>
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              New agent sessions stop getting this server, and its stored secrets are deleted.
+              <T>
+                New agent sessions stop getting this server, and its stored secrets are deleted.
+              </T>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+            <AlertDialogClose render={<Button variant="outline" />}>
+              <T>Cancel</T>
+            </AlertDialogClose>
             <Button
               variant="destructive"
               onClick={() => {
@@ -1097,7 +1161,7 @@ function McpServersPanel({
                 setRemoving(null);
               }}
             >
-              Remove
+              <T>Remove</T>
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>
@@ -1108,10 +1172,11 @@ function McpServersPanel({
 
 /** The row's name as a button, so the row opens from the keyboard too; a click bubbles to the row. */
 function OpenServerButton({ name, children }: { name: string; children: ReactNode }) {
+  const gt = useGT();
   return (
     <button
       type="button"
-      aria-label={`Open ${name}`}
+      aria-label={gt("Open {name}", { name })}
       className="flex min-w-0 cursor-pointer items-center gap-1.5 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
     >
       {children}
@@ -1128,6 +1193,7 @@ const OPEN_ROW_CLASS = "cursor-pointer hover:bg-muted/40";
  * off; its name is reserved (see `isValidMcpServerName`).
  */
 function T3McpServerRow({ onOpen }: { onOpen: () => void }) {
+  const gt = useGT();
   return (
     <SettingsRow
       onClick={onOpen}
@@ -1136,18 +1202,20 @@ function T3McpServerRow({ onOpen }: { onOpen: () => void }) {
         <OpenServerButton name={T3_MCP_SERVER_NAME}>
           <span className="truncate">{T3_MCP_SERVER_NAME}</span>
           <Badge variant="outline" size="sm">
-            Built in
+            <T>Built in</T>
           </Badge>
         </OpenServerButton>
       }
-      description="T3 Code's own tools: threads, tasks, the browser and devices."
+      description={gt("T3 Code's own tools: threads, tasks, the browser and devices.")}
       control={
         <span className="flex items-center" onClick={stopRowClick}>
           <Tooltip>
             <TooltipTrigger render={<span className="inline-flex" />}>
-              <Switch aria-label="t3-code server" checked disabled />
+              <Switch aria-label={gt("t3-code server")} checked disabled />
             </TooltipTrigger>
-            <TooltipPopup side="top">Every agent session gets this server.</TooltipPopup>
+            <TooltipPopup side="top">
+              <T>Every agent session gets this server.</T>
+            </TooltipPopup>
           </Tooltip>
           <ChevronRightIcon aria-hidden className="ml-2 size-4 shrink-0 text-muted-foreground" />
         </span>
@@ -1175,6 +1243,7 @@ function McpServerSettingsRow({
   readonly onRemove?: () => void;
   readonly onReset?: () => void;
 }) {
+  const gt = useGT();
   const transport = row.config.transport;
   return (
     <SettingsRow
@@ -1183,16 +1252,16 @@ function McpServerSettingsRow({
         <OpenServerButton name={row.name}>
           <span className="truncate">{row.name}</span>
           <Badge variant="outline" size="sm">
-            {transport.type === "stdio" ? "Command" : "URL"}
+            {transport.type === "stdio" ? gt("Command") : "URL"}
           </Badge>
           {row.replacesEnvironment ? (
             <Badge variant="info" size="sm">
-              Replaces environment's
+              <T>Replaces environment's</T>
             </Badge>
           ) : null}
           {row.origin === "project-switch" ? (
             <Badge variant="info" size="sm">
-              {row.config.enabled ? "On" : "Off"} for this project
+              {row.config.enabled ? gt("On for this project") : gt("Off for this project")}
             </Badge>
           ) : null}
         </OpenServerButton>
@@ -1206,28 +1275,34 @@ function McpServerSettingsRow({
         <span className="flex items-center gap-2" onClick={stopRowClick}>
           {onReset ? (
             <Button size="xs" variant="ghost" onClick={onReset} disabled={!canSwitch}>
-              Reset
+              <T>Reset</T>
             </Button>
           ) : null}
           {canEdit && onEdit && onRemove ? (
             <Menu>
               <MenuTrigger
                 render={
-                  <Button size="icon-sm" variant="ghost-muted" aria-label={`${row.name} options`} />
+                  <Button
+                    size="icon-sm"
+                    variant="ghost-muted"
+                    aria-label={gt("{name} options", { name: row.name })}
+                  />
                 }
               >
                 <MoreHorizontalIcon className="size-4" />
               </MenuTrigger>
               <MenuPopup align="end">
-                <MenuItem onClick={onEdit}>Edit</MenuItem>
+                <MenuItem onClick={onEdit}>
+                  <T>Edit</T>
+                </MenuItem>
                 <MenuItem variant="destructive" onClick={onRemove}>
-                  Remove
+                  <T>Remove</T>
                 </MenuItem>
               </MenuPopup>
             </Menu>
           ) : null}
           <Switch
-            aria-label={`${row.name} server`}
+            aria-label={gt("{name} server", { name: row.name })}
             checked={row.config.enabled}
             disabled={!canSwitch}
             onCheckedChange={onEnabledChange}

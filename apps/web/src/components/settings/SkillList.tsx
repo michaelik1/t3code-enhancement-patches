@@ -1,4 +1,5 @@
 import { ChevronDownIcon, ChevronRightIcon, PackageIcon } from "lucide-react";
+import { T, useGT, Var } from "gt-react";
 import { memo, useState, type MouseEvent } from "react";
 
 import { cn } from "../../lib/utils";
@@ -58,6 +59,7 @@ const SkillListItem = memo(function SkillListItem({
   onToggle,
   onOpen,
 }: RowHandlers & { item: SkillListRow }) {
+  const gt = useGT();
   const { row, details, disabled, overridden } = item;
   const lockedOff = row.disabledByProvider;
   const conflict = skillConflict(row, details);
@@ -83,22 +85,22 @@ const SkillListItem = memo(function SkillListItem({
             className="text-xs text-muted-foreground"
             text={
               lockedOff
-                ? "Turned off in the agent's own settings."
-                : row.description || "No description yet."
+                ? gt("Turned off in the agent's own settings.")
+                : row.description || gt("No description yet.")
             }
           />
         </button>
         <span className="flex shrink-0 items-center gap-2">
           {overridden ? (
             <Badge variant="info" size="sm">
-              This project
+              <T>This project</T>
             </Badge>
           ) : null}
           {conflict !== null ? (
             <Tooltip>
               <TooltipTrigger render={<span className="inline-flex" />}>
                 <Badge variant="warning" size="sm">
-                  Conflict
+                  <T>Conflict</T>
                 </Badge>
               </TooltipTrigger>
               <TooltipPopup side="top" className="max-w-sm">
@@ -115,7 +117,7 @@ const SkillListItem = memo(function SkillListItem({
           </span>
           <span className="flex items-center" onClick={stopRowClick}>
             <Switch
-              aria-label={`${row.name} skill`}
+              aria-label={gt("{name} skill", { name: row.name })}
               checked={!disabled && !lockedOff}
               disabled={!canWrite || lockedOff}
               onCheckedChange={(enabled) => onToggle([row], enabled)}
@@ -138,6 +140,7 @@ function SourceGroup({
   items,
   ...handlers
 }: RowHandlers & { source: string; items: ReadonlyArray<SkillListRow> }) {
+  const gt = useGT();
   const [open, setOpen] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const allOff = items.every((item) => item.disabled || item.row.disabledByProvider);
@@ -162,7 +165,9 @@ function SourceGroup({
               <PackageIcon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
             )}
             <span className="min-w-0 truncate text-xs font-medium text-muted-foreground">
-              From {source}
+              <T>
+                From <Var>{source}</Var>
+              </T>
             </span>
             <Badge variant="secondary" size="sm">
               {items.length}
@@ -170,7 +175,7 @@ function SourceGroup({
           </button>
           <span className="flex items-center" onClick={stopRowClick}>
             <Switch
-              aria-label={`Skills from ${source}`}
+              aria-label={gt("Skills from {source}", { source })}
               checked={!allOff}
               disabled={!handlers.canWrite}
               onCheckedChange={(enabled) =>
@@ -200,7 +205,7 @@ function SourceGroup({
             onClick={() => setShowAll((value) => !value)}
             className="w-full cursor-pointer px-3 py-2 text-left text-xs text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4"
           >
-            {hidden > 0 ? `${hidden} more` : "Show fewer"}
+            {hidden > 0 ? gt("{count} more", { count: hidden }) : gt("Show fewer")}
           </button>
         </li>
       ) : null}

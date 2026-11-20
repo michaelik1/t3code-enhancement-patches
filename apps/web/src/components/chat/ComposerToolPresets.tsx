@@ -9,6 +9,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { toolPresetState, withThreadToolPreset } from "@t3tools/shared/agentTools";
 import { resolveProjectSettings } from "@t3tools/shared/projectSettings";
 import { BlocksIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { T, useGT } from "gt-react";
 import { memo, useState } from "react";
 
 import { type DraftId, useComposerDraftStore } from "../../composerDraftStore";
@@ -77,6 +78,7 @@ export function useComposerToolPresets(input: {
   readonly threadShell: ThreadShell | null;
   readonly running: boolean;
 }): ComposerToolPresets | null {
+  const gt = useGT();
   const settings = useAtomValue(serverEnvironment.settingsValueAtom(input.environmentId));
   const canEdit = useEnvironmentsWithScope(
     [{ environmentId: input.environmentId }],
@@ -112,7 +114,7 @@ export function useComposerToolPresets(input: {
       };
     }),
     disabledReason:
-      isServerThread && input.running ? "Tools can change once the thread is idle." : null,
+      isServerThread && input.running ? gt("Tools can change once the thread is idle.") : null,
     onToggle: (name, on) => {
       const next = withThreadToolPreset(switches, name, on, stateOf(name));
       if (isServerThread) {
@@ -140,11 +142,15 @@ export function ComposerToolPresetsSection({ toolPresets }: { toolPresets: Compo
   return (
     <>
       <MenuGroup>
-        <MenuGroupLabel>Tool presets</MenuGroupLabel>
+        <MenuGroupLabel>
+          <T>Tool presets</T>
+        </MenuGroupLabel>
         {toolPresets.presets.length === 0 ? (
           <p className="max-w-64 px-2 py-1 text-muted-foreground text-xs">
-            Group skills and MCP servers you use together, then turn them on or off for a thread
-            here.
+            <T>
+              Group skills and MCP servers you use together, then turn them on or off for a thread
+              here.
+            </T>
           </p>
         ) : null}
         {toolPresets.presets.map((preset) => (
@@ -157,7 +163,9 @@ export function ComposerToolPresetsSection({ toolPresets }: { toolPresets: Compo
           >
             <span className="block truncate">{preset.name}</span>
             {preset.partial ? (
-              <span className="block text-muted-foreground text-xs">Some of its tools are on</span>
+              <span className="block text-muted-foreground text-xs">
+                <T>Some of its tools are on</T>
+              </span>
             ) : null}
           </MenuCheckboxItem>
         ))}
@@ -172,13 +180,13 @@ export function ComposerToolPresetsSection({ toolPresets }: { toolPresets: Compo
           <MenuSeparator />
           <MenuItem onClick={() => toolPresets.onEdit(null)}>
             <PlusIcon aria-hidden />
-            New preset…
+            <T>New preset…</T>
           </MenuItem>
           {toolPresets.presets.length > 0 ? (
             <MenuSub>
               <MenuSubTrigger>
                 <PencilIcon aria-hidden />
-                Edit preset
+                <T>Edit preset</T>
               </MenuSubTrigger>
               <MenuSubPopup {...composerFloatingLayerProps}>
                 {toolPresets.presets.map((preset) => (
@@ -204,16 +212,24 @@ export const ComposerToolPresetsControl = memo(function ComposerToolPresetsContr
   size?: "sm" | "xs";
   hidden?: boolean;
 }) {
+  const gt = useGT();
   const size = props.size ?? "sm";
   const composerFloatingLayerProps = useComposerMenuProps();
   const [open, setOpen] = useComposerMenuState(props.hidden);
   const { toolPresets } = props;
   const on = toolPresets.presets.filter((preset) => preset.on);
-  const label = on.length === 1 ? on[0]!.name : on.length > 1 ? `${on.length} presets` : null;
+  const label =
+    on.length === 1
+      ? on[0]!.name
+      : on.length > 1
+        ? gt("{count} presets", { count: on.length })
+        : null;
   const tooltip =
     on.length === 0
-      ? "Tool presets"
-      : `Tool presets on for this thread: ${on.map((preset) => preset.name).join(", ")}`;
+      ? gt("Tool presets")
+      : gt("Tool presets on for this thread: {names}", {
+          names: on.map((preset) => preset.name).join(", "),
+        });
   return (
     <>
       <Menu open={open} onOpenChange={setOpen}>

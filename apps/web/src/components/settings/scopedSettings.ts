@@ -515,7 +515,8 @@ export function planEnvironmentsSettingsPatch(
     clientPatch: {} as ClientSettingsPatch,
     hasClientWrite: false,
     serverWrites,
-    unavailableReason: serverWrites.length > 0 ? null : "Connect an environment to save this.",
+    unavailableReason:
+      serverWrites.length > 0 ? null : m(msg("Connect an environment to save this.")),
   };
 }
 

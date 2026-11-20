@@ -1,3 +1,5 @@
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
 import {
   type EnvironmentId,
   isValidMcpServerName,
@@ -382,14 +384,23 @@ export function skillAvailability(
 const joinNames = (names: ReadonlyArray<string>) =>
   names.length <= 1
     ? (names[0] ?? "")
-    : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+    : m(
+        msg("{first} and {last}", {
+          first: names.slice(0, -1).join(", "),
+          last: names[names.length - 1],
+        }),
+      );
 
 export function availabilityNote(value: SkillAvailability): string {
   return value.everyone
-    ? "Available to all your agents"
+    ? m(msg("Available to all your agents"))
     : value.agents.length === 0
-      ? "No enabled agent loads this skill"
-      : `Not available to ${joinNames(value.missing.map((agent) => agent.displayName))}`;
+      ? m(msg("No enabled agent loads this skill"))
+      : m(
+          msg("Not available to {names}", {
+            names: joinNames(value.missing.map((agent) => agent.displayName)),
+          }),
+        );
 }
 
 /**
@@ -399,7 +410,12 @@ export function availabilityNote(value: SkillAvailability): string {
  */
 export function skillConflict(row: SkillRow, details: SkillRowDetails): string | null {
   return details.conflict
-    ? `Different skills are named “${row.name}”, and its switch turns them all on or off. Remove or rename the copy you don't want.`
+    ? m(
+        msg(
+          "Different skills are named “{name}”, and its switch turns them all on or off. Remove or rename the copy you don't want.",
+          { name: row.name },
+        ),
+      )
     : null;
 }
 
@@ -648,17 +664,21 @@ export function mcpServerFromDraft(
       field: "name",
       message:
         name === "t3-code"
-          ? "t3-code is reserved for T3 Code's own server."
-          : "Use lowercase letters, digits, - or _, starting with a letter.",
+          ? m(msg("t3-code is reserved for T3 Code's own server."))
+          : m(msg("Use lowercase letters, digits, - or _, starting with a letter.")),
     };
   }
   if (takenNames.has(name)) {
-    return { ok: false, field: "name", message: "A server with this name already exists." };
+    return { ok: false, field: "name", message: m(msg("A server with this name already exists.")) };
   }
   if (draft.type === "stdio") {
     const command = draft.command.trim();
     if (command.length === 0) {
-      return { ok: false, field: "command", message: "Enter the command that starts the server." };
+      return {
+        ok: false,
+        field: "command",
+        message: m(msg("Enter the command that starts the server.")),
+      };
     }
     return {
       ok: true,
@@ -673,7 +693,7 @@ export function mcpServerFromDraft(
   }
   const url = draft.url.trim();
   if (!/^https?:\/\/\S+$/i.test(url)) {
-    return { ok: false, field: "url", message: "Enter an http:// or https:// URL." };
+    return { ok: false, field: "url", message: m(msg("Enter an http:// or https:// URL.")) };
   }
   return {
     ok: true,

@@ -5,6 +5,7 @@ import {
   type SkillPreviewItem,
 } from "@t3tools/contracts";
 import { AlertTriangleIcon, SearchIcon } from "lucide-react";
+import { T, useGT, Var } from "gt-react";
 import { useId, useState } from "react";
 
 import { serverEnvironment } from "../../state/server";
@@ -52,6 +53,7 @@ export function AddSkillsDialog({
   readonly scopeLabel: string;
   readonly onInstalled: () => void;
 }) {
+  const gt = useGT();
   const id = useId();
   const preview = useAtomCommand(serverEnvironment.previewSkills, { reportFailure: false });
   const install = useAtomCommand(serverEnvironment.installSkills, { reportFailure: false });
@@ -152,9 +154,14 @@ export function AddSkillsDialog({
     >
       <DialogPopup className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Add skills</DialogTitle>
+          <DialogTitle>
+            <T>Add skills</T>
+          </DialogTitle>
           <DialogDescription>
-            Installs for every agent on {scopeLabel}, the same way <code>npx skills add</code> does.
+            <T>
+              Installs for every agent on <Var>{scopeLabel}</Var>, the same way{" "}
+              <code>npx skills add</code> does.
+            </T>
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -166,7 +173,9 @@ export function AddSkillsDialog({
             }}
           >
             <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-source`}>Source</Label>
+              <Label htmlFor={`${id}-source`}>
+                <T>Source</T>
+              </Label>
               <div className="flex gap-2">
                 <Input
                   id={`${id}-source`}
@@ -189,16 +198,22 @@ export function AddSkillsDialog({
                   disabled={busy !== null || source.trim().length === 0}
                 >
                   {busy === "finding" ? <Spinner /> : null}
-                  Find skills
+                  <T>Find skills</T>
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                A GitHub <code>owner/repo</code>, a git URL, or a folder on the environment.
+                <T>
+                  A GitHub <code>owner/repo</code>, a git URL, or a folder on the environment.
+                </T>
               </p>
             </div>
             {found !== null ? (
               <fieldset className="grid gap-2">
-                <legend className="sr-only">Skills in {found.source}</legend>
+                <legend className="sr-only">
+                  <T>
+                    Skills in <Var>{found.source}</Var>
+                  </T>
+                </legend>
                 {found.skills.length >= FILTER_FROM ? (
                   <InputGroup>
                     <InputGroupAddon>
@@ -206,10 +221,10 @@ export function AddSkillsDialog({
                     </InputGroupAddon>
                     <InputGroupInput
                       size="sm"
-                      placeholder={`Filter ${found.skills.length} skills…`}
+                      placeholder={gt("Filter {count} skills…", { count: found.skills.length })}
                       value={filter}
                       onChange={(event) => setFilter(event.target.value)}
-                      aria-label="Filter skills"
+                      aria-label={gt("Filter skills")}
                     />
                   </InputGroup>
                 ) : null}
@@ -222,16 +237,20 @@ export function AddSkillsDialog({
                       onCheckedChange={(checked) => selectShown(checked === true)}
                     />
                     <span className="flex-1">
-                      {filter.trim() === "" ? "Select all" : "Select all shown"}
+                      {filter.trim() === "" ? gt("Select all") : gt("Select all shown")}
                     </span>
                     <span>
-                      {selected.size} of {found.skills.length} selected
+                      <T>
+                        <Var>{selected.size}</Var> of <Var>{found.skills.length}</Var> selected
+                      </T>
                     </span>
                   </label>
                   <ul className="max-h-[min(24rem,50vh)] divide-y divide-border/50 overflow-y-auto">
                     {shown.length === 0 ? (
                       <li className="px-3 py-4 text-sm text-muted-foreground">
-                        No skills match “{filter.trim()}”.
+                        <T>
+                          No skills match “<Var>{filter.trim()}</Var>”.
+                        </T>
                       </li>
                     ) : null}
                     {shown.map((skill) => (
@@ -248,7 +267,7 @@ export function AddSkillsDialog({
                             </span>
                             <TruncatedText
                               className="text-xs text-muted-foreground"
-                              text={skill.description || "No description."}
+                              text={skill.description || gt("No description.")}
                             />
                           </span>
                           {skill.scripts ? (
@@ -259,15 +278,19 @@ export function AddSkillsDialog({
                                 }
                               >
                                 <AlertTriangleIcon
-                                  aria-label="Includes scripts"
+                                  aria-label={gt("Includes scripts")}
                                   className="size-4"
                                 />
                               </TooltipTrigger>
-                              <TooltipPopup side="top">Includes scripts</TooltipPopup>
+                              <TooltipPopup side="top">
+                                <T>Includes scripts</T>
+                              </TooltipPopup>
                             </Tooltip>
                           ) : null}
                           <span className="w-14 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-                            {skill.files.length === 1 ? "1 file" : `${skill.files.length} files`}
+                            {skill.files.length === 1
+                              ? gt("1 file")
+                              : gt("{count} files", { count: skill.files.length })}
                             {skill.filesTruncated ? "+" : ""}
                           </span>
                         </label>
@@ -277,8 +300,10 @@ export function AddSkillsDialog({
                 </div>
                 {found.skills.length > MAX_SKILLS_PER_INSTALL ? (
                   <p className="text-xs text-muted-foreground">
-                    One install takes up to {MAX_SKILLS_PER_INSTALL} skills. Install the rest
-                    afterwards.
+                    <T>
+                      One install takes up to <Var>{MAX_SKILLS_PER_INSTALL}</Var> skills. Install
+                      the rest afterwards.
+                    </T>
                   </p>
                 ) : null}
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -286,8 +311,10 @@ export function AddSkillsDialog({
                     aria-hidden
                     className="size-3.5 shrink-0 text-warning-foreground"
                   />
-                  marks skills with scripts agents can be told to run. Install only sources you
-                  trust.
+                  <T>
+                    marks skills with scripts agents can be told to run. Install only sources you
+                    trust.
+                  </T>
                 </p>
               </fieldset>
             ) : null}
@@ -298,14 +325,16 @@ export function AddSkillsDialog({
         </DialogPanel>
         <DialogFooter variant="bare">
           <Button variant="outline" disabled={busy !== null} onClick={() => onOpenChange(false)}>
-            Cancel
+            <T>Cancel</T>
           </Button>
           <Button
             disabled={found === null || selected.size === 0 || busy !== null}
             onClick={() => void installSelected()}
           >
             {busy === "installing" ? <Spinner /> : null}
-            {selected.size > 1 ? `Install ${selected.size} skills` : "Install"}
+            {selected.size > 1
+              ? gt("Install {count} skills", { count: selected.size })
+              : gt("Install")}
           </Button>
         </DialogFooter>
       </DialogPopup>

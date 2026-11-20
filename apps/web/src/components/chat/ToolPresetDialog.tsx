@@ -9,6 +9,7 @@ import {
 } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { SearchIcon } from "lucide-react";
+import { T, useGT, Var } from "gt-react";
 import * as Schema from "effect/Schema";
 import { useId, useState } from "react";
 
@@ -66,6 +67,7 @@ export function ToolPresetDialog({
   readonly name: string | null;
   readonly onClose: () => void;
 }) {
+  const gt = useGT();
   const id = useId();
   const settings = useAtomValue(serverEnvironment.settingsValueAtom(environmentId));
   const providers =
@@ -108,10 +110,10 @@ export function ToolPresetDialog({
     trimmed.length === 0
       ? null
       : trimmed !== initialName && Object.hasOwn(presets, trimmed)
-        ? "Another preset has this name."
+        ? gt("Another preset has this name.")
         : isToolPresetName(trimmed)
           ? null
-          : "Use at most 48 characters.";
+          : gt("Use at most 48 characters.");
   const canSave =
     trimmed.length > 0 && nameError === null && chosenSkills.size + chosenServers.size > 0;
 
@@ -141,12 +143,16 @@ export function ToolPresetDialog({
     >
       <DialogPopup className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>{initialName === null ? "New preset" : `Edit ${initialName}`}</DialogTitle>
+          <DialogTitle>
+            {initialName === null ? gt("New preset") : gt("Edit {name}", { name: initialName })}
+          </DialogTitle>
           <DialogDescription>
-            Pick the skills and servers a thread turns on or off together.{" "}
+            <T>Pick the skills and servers a thread turns on or off together.</T>{" "}
             {targets.length > 1
-              ? `It's saved on ${targets.map((environment) => environment.label).join(", ")}, for every project there.`
-              : "Every project on this environment can use the preset."}
+              ? gt("It's saved on {environments}, for every project there.", {
+                  environments: targets.map((environment) => environment.label).join(", "),
+                })
+              : gt("Every project on this environment can use the preset.")}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -158,10 +164,12 @@ export function ToolPresetDialog({
             }}
           >
             <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-name`}>Name</Label>
+              <Label htmlFor={`${id}-name`}>
+                <T>Name</T>
+              </Label>
               <Input
                 id={`${id}-name`}
-                placeholder="Frontend"
+                placeholder={gt("Frontend")}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 autoFocus
@@ -171,16 +179,16 @@ export function ToolPresetDialog({
               ) : null}
             </div>
             <MemberList
-              label="Skills"
-              emptyText="The agents here have no skills."
-              members={withChosen(skills, chosenSkills)}
+              label={gt("Skills")}
+              emptyText={gt("The agents here have no skills.")}
+              members={withChosen(skills, chosenSkills, gt("Not found here"))}
               chosen={chosenSkills}
               onChange={setChosenSkills}
             />
             <MemberList
-              label="MCP servers"
-              emptyText="No MCP servers added in Settings → Tools."
-              members={withChosen(servers, chosenServers)}
+              label={gt("MCP servers")}
+              emptyText={gt("No MCP servers added in Settings → Tools.")}
+              members={withChosen(servers, chosenServers, gt("Not found here"))}
               chosen={chosenServers}
               onChange={setChosenServers}
             />
@@ -195,14 +203,14 @@ export function ToolPresetDialog({
               className="sm:me-auto"
               onClick={() => write({ [initialName]: null })}
             >
-              Delete
+              <T>Delete</T>
             </Button>
           ) : null}
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            <T>Cancel</T>
           </Button>
           <Button disabled={!canSave} onClick={save}>
-            Save
+            <T>Save</T>
           </Button>
         </DialogFooter>
       </DialogPopup>
@@ -214,13 +222,14 @@ export function ToolPresetDialog({
 function withChosen(
   members: ReadonlyArray<ToolPresetMember>,
   chosen: ReadonlySet<string>,
+  missing: string,
 ): ReadonlyArray<ToolPresetMember> {
   const listed = new Set(members.map((member) => member.name.toLowerCase()));
   return [
     ...members,
     ...[...chosen]
       .filter((name) => !listed.has(name.toLowerCase()))
-      .map((name) => ({ name, detail: "Not found here" })),
+      .map((name) => ({ name, detail: missing })),
   ];
 }
 
@@ -237,6 +246,7 @@ function MemberList({
   readonly chosen: ReadonlySet<string>;
   readonly onChange: (next: ReadonlySet<string>) => void;
 }) {
+  const gt = useGT();
   const [filter, setFilter] = useState("");
   const query = filter.trim().toLowerCase();
   const shown =
@@ -270,10 +280,13 @@ function MemberList({
           </InputGroupAddon>
           <InputGroupInput
             size="sm"
-            placeholder={`Filter ${members.length} ${label.toLowerCase()}…`}
+            placeholder={gt("Filter {count} {label}…", {
+              count: members.length,
+              label: label.toLowerCase(),
+            })}
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
-            aria-label={`Filter ${label.toLowerCase()}`}
+            aria-label={gt("Filter {label}", { label: label.toLowerCase() })}
           />
         </InputGroup>
       ) : null}
@@ -282,7 +295,9 @@ function MemberList({
           <li className="px-3 py-3 text-sm text-muted-foreground">{emptyText}</li>
         ) : shown.length === 0 ? (
           <li className="px-3 py-3 text-sm text-muted-foreground">
-            No matches for “{filter.trim()}”.
+            <T>
+              No matches for “<Var>{filter.trim()}</Var>”.
+            </T>
           </li>
         ) : (
           shown.map((member) => (

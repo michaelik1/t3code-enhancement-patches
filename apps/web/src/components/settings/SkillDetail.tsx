@@ -1,4 +1,5 @@
 import { type EnvironmentId, resolveEnvironmentMachineKind } from "@t3tools/contracts";
+import { T, useGT, Var } from "gt-react";
 import { AlertTriangleIcon, CheckIcon, CopyIcon } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 
@@ -57,6 +58,7 @@ export function SkillDetail({
   onSync: (() => void) | null;
   syncing: boolean;
 }) {
+  const gt = useGT();
   useEscapeToList(onBack);
   const loads = new Set(row.providers.map((provider) => provider.instanceId));
   const conflict = skillConflict(row, details);
@@ -68,22 +70,29 @@ export function SkillDetail({
 
   const { copyToClipboard, isCopied } = useCopyToClipboard({
     timeout: 1500,
-    target: namedClipboardTarget("skill path"),
+    target: namedClipboardTarget(gt("skill path")),
   });
 
   return (
-    <section aria-label={`${row.name} details`} className="min-w-0 space-y-4 px-3 sm:px-4">
+    <section
+      aria-label={gt("{name} details", { name: row.name })}
+      className="min-w-0 space-y-4 px-3 sm:px-4"
+    >
       <div className="space-y-3 rounded-xl border border-border/60 bg-card/40 px-3 py-3 sm:px-4">
         <div className="min-w-0">
           <h2 className="text-lg font-semibold break-words">{row.name}</h2>
           <p className="mt-1 text-sm break-words text-muted-foreground">
-            {row.description || "No description yet."}
+            {row.description || gt("No description yet.")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">Used by</span>
+          <span className="text-xs text-muted-foreground">
+            <T>Used by</T>
+          </span>
           {agents.length === 0 ? (
-            <span className="text-xs text-muted-foreground">No agents are enabled.</span>
+            <span className="text-xs text-muted-foreground">
+              <T>No agents are enabled.</T>
+            </span>
           ) : null}
           {agents.map((agent) => {
             const on = loads.has(agent.instanceId);
@@ -99,8 +108,8 @@ export function SkillDetail({
                 </TooltipTrigger>
                 <TooltipPopup>
                   {on
-                    ? `${agent.displayName} loads this skill.`
-                    : `${agent.displayName} doesn't load this skill.`}
+                    ? gt("{name} loads this skill.", { name: agent.displayName })
+                    : gt("{name} doesn't load this skill.", { name: agent.displayName })}
                 </TooltipPopup>
               </Tooltip>
             );
@@ -108,18 +117,20 @@ export function SkillDetail({
           <span className="flex-1" />
           {onUpdate !== null ? (
             <Button size="xs" variant="outline" onClick={onUpdate}>
-              Update
+              <T>Update</T>
             </Button>
           ) : null}
           {onRemove !== null ? (
             <Button size="xs" variant="destructive-outline" onClick={onRemove}>
-              Remove
+              <T>Remove</T>
             </Button>
           ) : null}
         </div>
         {fleet !== undefined ? (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">On</span>
+            <span className="text-xs text-muted-foreground">
+              <T>On</T>
+            </span>
             {fleet.environments.map((environment) => {
               const has = fleet.on.includes(environment.environmentId);
               return (
@@ -140,10 +151,10 @@ export function SkillDetail({
                   </TooltipTrigger>
                   <TooltipPopup>
                     {!has
-                      ? `${environment.label} doesn't have this skill.`
+                      ? gt("{name} doesn't have this skill.", { name: environment.label })
                       : environment.environmentId === fleet.shownFrom
-                        ? `Showing ${environment.label}'s copy.`
-                        : `${environment.label} has this skill.`}
+                        ? gt("Showing {name}'s copy.", { name: environment.label })
+                        : gt("{name} has this skill.", { name: environment.label })}
                   </TooltipPopup>
                 </Tooltip>
               );
@@ -152,11 +163,15 @@ export function SkillDetail({
             {onSync !== null || syncing ? (
               <Button size="xs" variant="outline" disabled={syncing} onClick={onSync ?? undefined}>
                 {syncing ? <Spinner /> : null}
-                Copy to{" "}
-                {fleet.environments
-                  .filter((environment) => !fleet.on.includes(environment.environmentId))
-                  .map((environment) => environment.label)
-                  .join(", ")}
+                <T>
+                  Copy to{" "}
+                  <Var>
+                    {fleet.environments
+                      .filter((environment) => !fleet.on.includes(environment.environmentId))
+                      .map((environment) => environment.label)
+                      .join(", ")}
+                  </Var>
+                </T>
               </Button>
             ) : null}
           </div>
@@ -165,7 +180,12 @@ export function SkillDetail({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {details.installed !== null ? (
               <span>
-                From <span className="font-mono text-foreground">{details.installed.source}</span>
+                <T>
+                  From{" "}
+                  <Var>
+                    <span className="font-mono text-foreground">{details.installed.source}</span>
+                  </Var>
+                </T>
               </span>
             ) : null}
             {conflict !== null ? <span className="text-warning-foreground">{conflict}</span> : null}
@@ -180,11 +200,11 @@ export function SkillDetail({
                   }
                 >
                   <AlertTriangleIcon className="size-3.5 shrink-0" />
-                  Includes scripts
+                  <T>Includes scripts</T>
                 </TooltipTrigger>
                 <TooltipPopup>
                   {scripts.slice(0, 8).join(", ")}
-                  {scripts.length > 8 ? ` and ${scripts.length - 8} more` : ""}
+                  {scripts.length > 8 ? gt(" and {count} more", { count: scripts.length - 8 }) : ""}
                 </TooltipPopup>
               </Tooltip>
             ) : null}
@@ -197,7 +217,7 @@ export function SkillDetail({
           <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-3 py-1.5">
             {details.copies.length > 1 ? (
               <ToggleGroup
-                aria-label="Copy of the skill"
+                aria-label={gt("Copy of the skill")}
                 size="xs"
                 value={[folder.folder]}
                 onValueChange={(next) => {
@@ -206,7 +226,9 @@ export function SkillDetail({
               >
                 {details.copies.map((copy, index) => (
                   <Toggle key={copy.folder} value={copy.folder}>
-                    Copy {index + 1}
+                    <T>
+                      Copy <Var>{index + 1}</Var>
+                    </T>
                   </Toggle>
                 ))}
               </ToggleGroup>
@@ -220,7 +242,7 @@ export function SkillDetail({
                   <Button
                     size="icon-xs"
                     variant="ghost"
-                    aria-label="Copy path"
+                    aria-label={gt("Copy path")}
                     onClick={() => copyToClipboard(folder.folder, undefined)}
                   />
                 }
@@ -231,18 +253,22 @@ export function SkillDetail({
                   <CopyIcon className="size-3.5" />
                 )}
               </TooltipTrigger>
-              <TooltipPopup side="top">{isCopied ? "Copied" : "Copy path"}</TooltipPopup>
+              <TooltipPopup side="top">{isCopied ? gt("Copied") : gt("Copy path")}</TooltipPopup>
             </Tooltip>
           </div>
         ) : null}
         {folder === null ? (
           <p className="p-4 text-sm text-muted-foreground">
-            This agent doesn't say where the skill's files are, so they can't be shown.
+            <T>This agent doesn't say where the skill's files are, so they can't be shown.</T>
           </p>
         ) : (
           <Suspense
             fallback={
-              <div role="status" aria-label="Loading the file viewer" className="space-y-2 p-4">
+              <div
+                role="status"
+                aria-label={gt("Loading the file viewer")}
+                className="space-y-2 p-4"
+              >
                 <Skeleton className="h-4 w-1/3" />
                 <Skeleton className="h-4 w-2/3" />
               </div>
@@ -258,7 +284,7 @@ export function SkillDetail({
         )}
         {folder?.filesTruncated ? (
           <p className="border-t border-border/60 px-3 py-1.5 text-xs text-muted-foreground">
-            Only some of this skill's files are shown.
+            <T>Only some of this skill's files are shown.</T>
           </p>
         ) : null}
       </div>

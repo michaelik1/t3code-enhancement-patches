@@ -5,6 +5,7 @@ import {
   type McpServerTool,
 } from "@t3tools/contracts";
 import { ChevronDownIcon } from "lucide-react";
+import { T, useGT } from "gt-react";
 import { memo, useEffect, useRef, useState } from "react";
 
 import { useAfterDelay } from "../../hooks/useAfterDelay";
@@ -55,6 +56,7 @@ export function McpServerDetail({
   onReset: (() => void) | null;
   onBack: () => void;
 }) {
+  const gt = useGT();
   useEscapeToList(onBack);
   const canList = useEnvironmentScope(environmentId, AuthProvidersManageScope);
   const query = useEnvironmentQuery(
@@ -85,7 +87,7 @@ export function McpServerDetail({
   const enabled = row?.config.enabled ?? true;
 
   return (
-    <section aria-label={`${name} details`} className="min-w-0 space-y-4 px-3 sm:px-4">
+    <section aria-label={gt("{name} details", { name })} className="min-w-0 space-y-4 px-3 sm:px-4">
       <div className="space-y-3 rounded-xl border border-border/60 bg-card/40 px-3 py-3 sm:px-4">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -93,26 +95,28 @@ export function McpServerDetail({
               <span className={cn("min-w-0", !enabled && "text-muted-foreground")}>{name}</span>
               <Badge variant="outline" size="sm">
                 {row === null
-                  ? "Built in"
+                  ? gt("Built in")
                   : row.config.transport.type === "stdio"
-                    ? "Command"
+                    ? gt("Command")
                     : "URL"}
               </Badge>
               {row?.replacesEnvironment ? (
                 <Badge variant="info" size="sm">
-                  Replaces environment's
+                  <T>Replaces environment's</T>
                 </Badge>
               ) : null}
               {row?.origin === "project-switch" ? (
                 <Badge variant="info" size="sm">
-                  {enabled ? "On" : "Off"} for this project
+                  {enabled ? gt("On for this project") : gt("Off for this project")}
                 </Badge>
               ) : null}
             </h2>
             {row === null ? (
               <p className="mt-1 text-sm text-muted-foreground">
-                T3 Code's own tools: threads, tasks, the browser and devices. Every agent session
-                gets this server; browser and device tools follow their settings.
+                <T>
+                  T3 Code's own tools: threads, tasks, the browser and devices. Every agent session
+                  gets this server; browser and device tools follow their settings.
+                </T>
               </p>
             ) : (
               <p className="mt-1 font-mono text-xs break-all text-muted-foreground">
@@ -123,13 +127,15 @@ export function McpServerDetail({
           {row === null ? (
             <Tooltip>
               <TooltipTrigger render={<span className="inline-flex" />}>
-                <Switch aria-label={`${name} server`} checked disabled />
+                <Switch aria-label={gt("{name} server", { name })} checked disabled />
               </TooltipTrigger>
-              <TooltipPopup side="top">Every agent session gets this server.</TooltipPopup>
+              <TooltipPopup side="top">
+                <T>Every agent session gets this server.</T>
+              </TooltipPopup>
             </Tooltip>
           ) : (
             <Switch
-              aria-label={`${name} server`}
+              aria-label={gt("{name} server", { name })}
               checked={enabled}
               disabled={!canSwitch}
               onCheckedChange={onEnabledChange}
@@ -140,17 +146,17 @@ export function McpServerDetail({
           <div className="flex flex-wrap items-center justify-end gap-2">
             {onReset !== null ? (
               <Button size="xs" variant="ghost" onClick={onReset} disabled={!canSwitch}>
-                Reset
+                <T>Reset</T>
               </Button>
             ) : null}
             {onEdit !== null ? (
               <Button size="xs" variant="outline" onClick={onEdit}>
-                Edit
+                <T>Edit</T>
               </Button>
             ) : null}
             {onRemove !== null ? (
               <Button size="xs" variant="destructive-outline" onClick={onRemove}>
-                Remove
+                <T>Remove</T>
               </Button>
             ) : null}
           </div>
@@ -160,7 +166,8 @@ export function McpServerDetail({
       <section className="space-y-2.5">
         <div className="flex min-h-7 items-center gap-2">
           <h3 className="shrink-0 text-sm font-normal text-foreground/70">
-            Tools{tools === null ? "" : ` · ${tools.length}`}
+            <T>Tools</T>
+            {tools === null ? "" : ` · ${tools.length}`}
           </h3>
           {serverInfo !== undefined ? (
             <span className="min-w-0 truncate text-xs text-muted-foreground">
@@ -176,7 +183,7 @@ export function McpServerDetail({
                   <Button
                     size="icon-sm"
                     variant="ghost"
-                    aria-label={query.isPending ? "Listing tools" : "List tools again"}
+                    aria-label={query.isPending ? gt("Listing tools") : gt("List tools again")}
                     disabled={query.isPending}
                     onClick={refresh}
                   />
@@ -184,15 +191,19 @@ export function McpServerDetail({
               >
                 <RefreshIcon refreshing={query.isPending} />
               </TooltipTrigger>
-              <TooltipPopup side="top">Start the server again and list its tools</TooltipPopup>
+              <TooltipPopup side="top">
+                <T>Start the server again and list its tools</T>
+              </TooltipPopup>
             </Tooltip>
           ) : null}
         </div>
         {!canList ? (
           <SettingsGroup>
             <p className="px-3 py-5 text-sm text-muted-foreground sm:px-4">
-              Listing a server's tools starts it, which needs permission to manage providers on this
-              environment.
+              <T>
+                Listing a server's tools starts it, which needs permission to manage providers on
+                this environment.
+              </T>
             </p>
           </SettingsGroup>
         ) : query.error !== null ? (
@@ -200,12 +211,12 @@ export function McpServerDetail({
             <div className="flex flex-wrap items-center gap-3 px-3 py-4 sm:px-4">
               <p className="min-w-0 flex-1 text-sm text-destructive-foreground">
                 {tools === null
-                  ? "Couldn't list this server's tools. "
-                  : "Couldn't list them again. "}
+                  ? gt("Couldn't list this server's tools. ")
+                  : gt("Couldn't list them again. ")}
                 {query.error}
               </p>
               <Button size="xs" variant="outline" disabled={query.isPending} onClick={refresh}>
-                Retry
+                <T>Retry</T>
               </Button>
             </div>
           </SettingsGroup>
@@ -214,7 +225,7 @@ export function McpServerDetail({
           <SettingsGroup>
             {tools.length === 0 ? (
               <p className="px-3 py-5 text-sm text-muted-foreground sm:px-4">
-                This server offers no tools.
+                <T>This server offers no tools.</T>
               </p>
             ) : (
               <ul className="divide-y divide-border/50">
@@ -234,6 +245,7 @@ export function McpServerDetail({
 
 /** A tool on one dense line; it opens to its full description and parameters. */
 const McpToolItem = memo(function McpToolItem({ tool }: { tool: McpServerTool }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   const count = tool.parameters.length;
   return (
@@ -254,12 +266,16 @@ const McpToolItem = memo(function McpToolItem({ tool }: { tool: McpServerTool })
           {open ? null : (
             <TruncatedText
               className="text-xs text-muted-foreground"
-              text={tool.description ?? "No description."}
+              text={tool.description ?? gt("No description.")}
             />
           )}
         </span>
         <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-          {count === 0 ? "No parameters" : count === 1 ? "1 parameter" : `${count} parameters`}
+          {count === 0
+            ? gt("No parameters")
+            : count === 1
+              ? gt("1 parameter")
+              : gt("{count} parameters", { count })}
         </span>
         <ChevronDownIcon
           aria-hidden
@@ -272,10 +288,12 @@ const McpToolItem = memo(function McpToolItem({ tool }: { tool: McpServerTool })
       {open ? (
         <div className="space-y-2.5 px-3 pb-3 sm:px-4">
           <p className="text-xs whitespace-pre-line text-muted-foreground">
-            {tool.description ?? "No description."}
+            {tool.description ?? gt("No description.")}
           </p>
           {count === 0 ? (
-            <p className="text-xs text-muted-foreground">Takes no parameters.</p>
+            <p className="text-xs text-muted-foreground">
+              <T>Takes no parameters.</T>
+            </p>
           ) : (
             <dl className="divide-y divide-border/50 rounded-lg border border-border/60">
               {tool.parameters.map((parameter) => (
@@ -289,7 +307,7 @@ const McpToolItem = memo(function McpToolItem({ tool }: { tool: McpServerTool })
                     </code>
                     {parameter.required ? (
                       <Badge variant="outline" size="sm">
-                        Required
+                        <T>Required</T>
                       </Badge>
                     ) : null}
                   </dt>

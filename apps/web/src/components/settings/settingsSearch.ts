@@ -1079,7 +1079,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "tools-skills",
-    title: "Skills",
+    title: msg("Skills"),
     to: "/settings/tools",
     scope: "project-defaults",
     searchTerms: [
@@ -1088,7 +1088,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "tools-mcp-servers",
-    title: "MCP servers",
+    title: msg("MCP servers"),
     to: "/settings/tools",
     scope: "project-defaults",
     searchTerms: [
@@ -1615,7 +1615,7 @@ export function isSettingsSearchScopeAvailable(
   }
 }
 
-export function searchableSetting(id: SettingsSearchItemId): {
+function searchableSetting(id: SettingsSearchItemId): {
   readonly id: string;
   readonly title: string;
 } {

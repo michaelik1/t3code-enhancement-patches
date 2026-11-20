@@ -1,5 +1,6 @@
 import { FileTree, useFileTree } from "@pierre/trees/react";
 import type { EnvironmentId, SkillFileEntry } from "@t3tools/contracts";
+import { T, useGT, Var } from "gt-react";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
@@ -30,6 +31,7 @@ export default function SkillFiles({
   folder: string;
   files: ReadonlyArray<SkillFileEntry>;
 }) {
+  const gt = useGT();
   const { resolvedTheme } = useTheme();
   const fileSet = new Set(files.map((file) => file.path));
   const scripts = new Set(files.filter((file) => file.script).map((file) => file.path));
@@ -47,7 +49,7 @@ export default function SkillFiles({
     icons: T3_PIERRE_ICONS,
     // Files an agent could run say so, matching "Includes scripts" above.
     renderRowDecoration: ({ item }) =>
-      scripts.has(item.path) ? { text: "script", title: "Agents can run this" } : null,
+      scripts.has(item.path) ? { text: gt("script"), title: gt("Agents can run this") } : null,
     search: false,
     unsafeCSS: PIERRE_TREE_UNSAFE_CSS,
     onSelectionChange: (selected) => {
@@ -71,7 +73,9 @@ export default function SkillFiles({
             onClick={() => setTreeOpen(!treeOpen)}
           >
             {treeOpen ? <ChevronDownIcon /> : <ChevronRightIcon />}
-            Files ({files.length}) · {current}
+            <T>
+              Files (<Var>{files.length}</Var>) · <Var>{current}</Var>
+            </T>
           </Button>
         </div>
         <div
@@ -79,7 +83,7 @@ export default function SkillFiles({
         >
           <FileTree
             model={model}
-            aria-label="Files in this skill"
+            aria-label={gt("Files in this skill")}
             className="min-h-0 flex-1 overflow-hidden"
             style={pierreTreeStyle(resolvedTheme)}
           />
@@ -100,6 +104,7 @@ function FilePane({
   folder: string;
   path: string;
 }) {
+  const gt = useGT();
   const file = useProjectFileQuery(environmentId, folder, path === "" ? null : path);
   const [source, setSource] = useState(false);
   const isSkillFile = path === SKILL_FILE;
@@ -116,7 +121,7 @@ function FilePane({
               aria-pressed={!source}
               onClick={() => setSource(false)}
             >
-              Preview
+              <T>Preview</T>
             </Button>
             <Button
               size="xs"
@@ -124,11 +129,13 @@ function FilePane({
               aria-pressed={source}
               onClick={() => setSource(true)}
             >
-              Source
+              <T>Source</T>
             </Button>
           </>
         ) : (
-          <span className="text-xs text-muted-foreground">Read-only</span>
+          <span className="text-xs text-muted-foreground">
+            <T>Read-only</T>
+          </span>
         )}
       </div>
       <div className={`${PANE_HEIGHT} flex flex-col overflow-hidden`}>
@@ -136,7 +143,7 @@ function FilePane({
           <>
             {file.data.truncated ? (
               <p className="px-3 py-1 text-xs text-warning-foreground">
-                This file is large, so only the start is shown.
+                <T>This file is large, so only the start is shown.</T>
               </p>
             ) : null}
             {isSkillFile && !source ? (
@@ -155,13 +162,15 @@ function FilePane({
           </>
         ) : file.isPending ? (
           <p role="status" className="px-3 py-3 text-xs text-muted-foreground">
-            Loading {path}…
+            <T>
+              Loading <Var>{path}</Var>…
+            </T>
           </p>
         ) : (
           <p className="px-3 py-3 text-xs text-muted-foreground">
             {file.readError?.failure === "binary_file"
-              ? "This file isn't text."
-              : (file.error ?? "This file can't be previewed here.")}
+              ? gt("This file isn't text.")
+              : (file.error ?? gt("This file can't be previewed here."))}
           </p>
         )}
       </div>
