@@ -132,13 +132,15 @@ export function useVoiceTranscriptionDestination() {
   const supported =
     !provider && environment?.serverConfig?.environment.capabilities.voiceTranscription === true;
   return {
-    ...(hydrated && choice === null ? { offerFirstRunSetup: true } : {}),
-    environmentId,
-    ...(provider ? { cloudProvider: provider } : {}),
-    ...(model ? { cloudModel: model } : {}),
+    ...(hydrated && (choice === null || provider !== undefined)
+      ? { offerFirstRunSetup: true }
+      : {}),
+    environmentId: provider ? null : environmentId,
+    ...(provider && supported ? { cloudProvider: provider } : {}),
+    ...(model && supported ? { cloudModel: model } : {}),
     grantId: grant?.id ?? null,
     label:
-      provider && environment
+      provider && supported && environment
         ? gt("{provider} via {environment}", {
             provider: CLOUD_SPEECH_LABELS[provider],
             environment: environment.label,

@@ -779,6 +779,7 @@ it.each(["not-json", JSON.stringify("off")])(
     await act(() => mocks.voice.start());
     expectNoAudioSent();
     await act(save);
+    expect(mocks.voice.transcriptionEnvironmentId).toBeNull();
     await act(() => mocks.voice.start());
     await act(() => mocks.voice.stop());
     expect(mocks.transcribeCalls).toEqual([]);
