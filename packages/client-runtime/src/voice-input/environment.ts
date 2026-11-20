@@ -139,7 +139,7 @@ export const transcribeCloudPcm = (
     prepared,
     method: "POST",
     canSend,
-    timeoutMs: 15 * 60_000,
+    timeoutMs: 130_000,
     path: (urls) => urls.transcribeCloud({ params: { provider }, query }),
     run: ({ client, headers }) =>
       client.transcribeCloud({

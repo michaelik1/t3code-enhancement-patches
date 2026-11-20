@@ -102,6 +102,12 @@ it("fails on disconnect and times out stalled inference", async () => {
     await vi.advanceTimersByTimeAsync(120_000);
     await expect(second.stream.finish()).rejects.toThrow("stopped responding");
     expect(second.socket.closed).toBe(true);
+    const third = connect();
+    const final = third.stream.finish();
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(third.socket.closed).toBe(false);
+    third.socket.receive({ type: "finished", text: "complete" });
+    await expect(final).resolves.toBe("complete");
   } finally {
     vi.useRealTimers();
   }

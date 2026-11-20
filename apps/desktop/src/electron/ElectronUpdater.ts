@@ -29,7 +29,7 @@ const relaunchWithoutInheritedDescriptors = (updater: AppImageUpdater) => {
   };
 };
 
-export function isPatchedUpdateAvailable(
+function isPatchedUpdateAvailable(
   currentVersion: string,
   candidateVersion: string,
   allowDowngrade: boolean,

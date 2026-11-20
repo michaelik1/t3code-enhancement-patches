@@ -762,7 +762,7 @@ it("revokes across windows even before the storage event and survives stale pref
 });
 
 it.each(["not-json", JSON.stringify("off")])(
-  "does not enable a pending provider over %s before the save completes",
+  "does not enable a cloud provider over %s even after the save completes",
   async (previous) => {
     setup();
     mocks.cloudVoiceCapable.add("env-b");
@@ -781,12 +781,12 @@ it.each(["not-json", JSON.stringify("off")])(
     await act(save);
     await act(() => mocks.voice.start());
     await act(() => mocks.voice.stop());
-    expect(mocks.transcribeCalls).toEqual(["xai via env-b"]);
+    expect(mocks.transcribeCalls).toEqual([]);
     expect(mocks.statusRequests).toEqual([]);
   },
 );
 
-it("sends audio to OpenRouter only under a device grant naming the exact model", async () => {
+it("does not send audio to OpenRouter even with an existing model grant", async () => {
   setup();
   mocks.cloudVoiceCapable.add("env-b");
   const key = "t3code:voice-audio-grant:v1";
@@ -805,7 +805,7 @@ it("sends audio to OpenRouter only under a device grant naming the exact model",
   await using _screen = await render(<Probe />);
   await act(() => mocks.voice.start());
   await act(() => mocks.voice.stop());
-  expect(mocks.transcribeCalls).toEqual([`openrouter:${model} via env-b`]);
+  expect(mocks.transcribeCalls).toEqual([]);
   expect(mocks.statusRequests).toEqual([]);
 });
 

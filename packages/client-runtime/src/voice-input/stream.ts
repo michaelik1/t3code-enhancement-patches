@@ -60,7 +60,7 @@ export function openSpeechStream(input: {
     clearTimeout(timer);
     timer = setTimeout(
       () => fail(translatableError(msg("Live transcription stopped responding."))),
-      120_000,
+      finishSent ? 60 * 60_000 : 120_000,
     );
   };
   const abort = () => fail(translatableError(msg("Voice transcription was cancelled.")), false);

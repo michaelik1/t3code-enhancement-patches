@@ -1364,19 +1364,14 @@ export function VoiceSettingsPanel() {
     environment,
     value: JSON.stringify(["environment", environment.environmentId]),
   }));
-  const cloudGroups = environments
-    .filter(() => false)
-    .filter(
-      (environment) => environment.serverConfig?.environment.capabilities.cloudVoiceTranscription,
-    )
-    .map((environment) => ({
-      environment,
-      choices: CloudSpeechProvider.literals.map((provider) => ({
-        environment,
-        provider,
-        value: JSON.stringify(["cloud", environment.environmentId, provider]),
-      })),
-    }));
+  const cloudGroups: Array<{
+    environment: (typeof environments)[number];
+    choices: Array<{
+      environment: (typeof environments)[number];
+      provider: CloudSpeechProvider;
+      value: string;
+    }>;
+  }> = [];
   const cloudChoices = cloudGroups.flatMap((group) => group.choices);
   const destinationValue = destination.cloudProvider
     ? JSON.stringify(["cloud", destination.environmentId, destination.cloudProvider])

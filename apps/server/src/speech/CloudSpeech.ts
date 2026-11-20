@@ -248,7 +248,7 @@ export const layer = Layer.effect(
       (effect, provider) =>
         effect.pipe(
           Effect.timeoutOrElse({
-            duration: "15 minutes",
+            duration: "2 minutes",
             orElse: () => Effect.fail(new CloudSpeechError({ provider, reason: "unavailable" })),
           }),
         ),

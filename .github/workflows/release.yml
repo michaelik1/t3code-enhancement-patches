@@ -87,6 +87,8 @@ jobs:
         run: vp install --frozen-lockfile --filter=@t3tools/desktop... --filter=t3... --filter=@t3tools/scripts...
       - name: Install Linux build tools
         run: sudo apt-get update && sudo apt-get install -y patchelf libsecret-1-dev pkg-config
+      - name: Verify voice and tools on Linux
+        run: vp test run apps/server/src/skills/SkillLibrary.test.ts apps/server/src/mcpServers/McpServerTools.test.ts apps/server/src/speech/SpeechService.test.ts packages/client-runtime/src/voice-input/stream.test.ts
       - name: Build patched WSL runtime
         env:
           TAG: ${{ needs.check.outputs.tag }}
@@ -270,6 +272,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             gh release edit $env:TAG --repo $env:REPO --draft=false --latest
           } else {
-            gh release create $env:TAG @assets --repo $env:REPO --title "Patched T3 Code $env:TAG" --notes "Based on upstream release $env:UPSTREAM_TAG. Includes the built-in t3_usage_limits MCP tool with native T3 presentation and post-release patch updater support. Windows x64 build; unsigned." --latest
+            $notes = "Based on upstream T3 Code $env:UPSTREAM_TAG.`n`n## Included patches`n`n- Local voice dictation up to one hour; cloud transcription selection is disabled.`n- Tools & Skills management and composer presets.`n- Usage limits MCP tool.`n- Patched release auto-updater.`n`n## Downloads`n`nWindows x64 installer with WSL runtime. The installer is unsigned."
+            gh release create $env:TAG @assets --repo $env:REPO --title "Patched T3 Code $env:TAG" --notes $notes --latest
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
